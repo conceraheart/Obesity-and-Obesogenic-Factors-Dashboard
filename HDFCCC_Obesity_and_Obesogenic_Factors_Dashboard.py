@@ -11,12 +11,12 @@
 
 # Initialize virtual environment. #
 # This goes into the command line bash. #
-# python3 -m venv geo_venv
-# geo_venv/Scripts/activate
+# python3 -m venv .venv
+# .venv/Scripts/activate
 
 # Install packages #
 # Also into the command line for the virtual environment. #
-# pip install pandas geopandas plotly openpxyl
+# pip install numpy pandas geopandas plotly openpxyl dash
 
 import os
 import json
@@ -24,6 +24,9 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import plotly.express as px
+import openpyxl
+import sys
+
 import dash
 from dash import dcc, html
 from dash.dependencies import Input, Output
@@ -284,21 +287,24 @@ obesogenicfactors_counties = adultobesity_counties.merge(childoverweight_countie
     .merge(adultsugarybeverage_counties, how="outer", on=["county_fips", "year"])
 
 # Census Tracts
-adultobesity_censustracts = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Obesity_Tracts.xlsx",
-                                              "M:\DREAM Lab\Obesity Supplement\Source Data/Adult Obesity_Tracts_21-22.xlsx",
+# I have standardized the source .xlsx sheets to "geoid" and "yr"
+# Some of the source sheets had no provided "yr" label, but the sheets were labeled by year. 
+# Other sheets had different capitalization for "geoid" and "yr".
+adultobesity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Obesity_Tracts.xlsx",
+                                              "M:/DREAM Lab/Obesity Supplement/Source Data/Adult Obesity_Tracts_21-22.xlsx",
                                               var_string="adultobesity", id_col_to_fix="geoid")
-childoverweight_censustracts = counties_readxlsx( f"{obesogenicfactors_filepath}Child Overweight_Tracts.xlsx", 
-                                                 "M:\DREAM Lab\Obesity Supplement\Source Data/Child Overweight_Tracts_21-22.xlsx",
+childoverweight_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Child Overweight_Tracts.xlsx", 
+                                                 "M:/DREAM Lab/Obesity Supplement/Source Data/Child Overweight_Tracts_21-22.xlsx",
                                                  var_string="childoverweight", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-teenoverweightobese_censustracts = counties_readxlsx( f"{obesogenicfactors_filepath}Teen_Overweight_Obesity_Tracts.xlsx", 
-                                                     "M:\DREAM Lab\Obesity Supplement\Source Data/Teen Overweight_Obesity_Tracts_21-22.xlsx",
+teenoverweightobese_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Teen Overweight_Obesity_Tracts.xlsx", 
+                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Teen Overweight_Obesity_Tracts_21-22.xlsx",
                                                      var_string="teenoverweightobese", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-adultfoodinsecurity_censustracts = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Food Insecurity_Tracts.xlsx",
-                                                     "M:\DREAM Lab\Obesity Supplement\Source Data/Adult Food Insecurity_Tracts_21-22.xlsx",
+adultfoodinsecurity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Food Insecurity_Tracts.xlsx",
+                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Adult Food Insecurity_Tracts_21-22.xlsx",
                                                      var_string="adultfoodinsecurity", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-adultsugarybeverage_censustracts = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Sugar Bev_Counties.xlsx",
-                                                     "M:\DREAM Lab\Obesity Supplement\Source Data/Adult sugar bev_Tracts_21-22.xlsx",
-                                                     var_string="adultsugarybev", id_col_to_fix="geoId").drop(columns=["censustract", "year_string"])
+adultsugarybeverage_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Sugar Bev_Tracts.xlsx",
+                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Adult sugar bev_Tracts_21-22.xlsx",
+                                                     var_string="adultsugarybev", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
 
 obesogenicfactors_censustracts = adultobesity_censustracts.merge(childoverweight_censustracts, how="outer", on=["censustract_fips", "year"])\
     .merge(teenoverweightobese_censustracts, how="outer", on=["censustract_fips", "year"])\
