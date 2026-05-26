@@ -39,15 +39,19 @@ from dash.dependencies import Input, Output
 # Consequently the DREAM Lab workstation uses an html output instead of running on the local
 # server. There is some functionality lost - there are no text links in the html.  
 # The workstation variable toggles between the two environments. 
-workstation = "local"
+workstation = "remote"
 
 # Read in shapefile data for counties and census tracts
 # Note: Tigerline shapefiles will show water boundaries. NHGIS shapefiles do not.
 if workstation == "local":
     county_2010 = gpd.read_file( "C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2010.shp" )
     county_2020 = gpd.read_file( "C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2020.shp" )
+    county_projected_2010=county_2010.to_crs(epsg=3857)
+    county_projected_2020=county_2020.to_crs(epsg=3857)
     censustract_2010 = gpd.read_file ( "C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2010.shp" )
     censustract_2020 = gpd.read_file ( "C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2020.shp" )
+    censustract_projected_2010=censustract_2010.to_crs(epsg=3857)
+    censustract_projected_2020=censustract_2020.to_crs(epsg=3857)
     obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/"
     checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_counties_20260525.xlsx"
     checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_censustracts_20260525.xlsx"
@@ -61,8 +65,8 @@ elif workstation == "remote":
     censustract_projected_2010 = censustract_2010.to_crs(epsg=3857)
     censustract_projected_2020=censustract_2020.to_crs(epsg=3857)
     obesogenicfactors_filepath = "M:/DREAM Lab/Obesity Supplement/Source Data/"
-    checkpoint_outputdatapath_counties = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCC_obesogenicfactors_counties_20260519.xlsx"
-    checkpoint_outputdatapath_censustracts = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCC_obesogenicfactors_censustracts_20260519.xlsx"
+    checkpoint_outputdatapath_counties = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCC_obesogenicfactors_counties_20260526.xlsx"
+    checkpoint_outputdatapath_censustracts = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCC_obesogenicfactors_censustracts_20260526.xlsx"
 
 # Define HDFCC and Stanford Catchment Areas #
 # Stanford Cancer Institute (SCI): 
@@ -267,7 +271,7 @@ def censustracts_readxlsx(file_path, var_string, id_col_to_fix=None, target_len=
         "yr": "year_string"
     })
     
-    outputdata_df = sourcedata_df[["censustract_fips", "censustract", "year", "year_string", var_string, f"{var_string}_suppressed", f"{var_string}_absolute"]]
+    outputdata_df = sourcedata_df[["censustract_fips", "censustract", "year", "year_string", var_string, f"{var_string}_absolute", f"{var_string}_suppressed"]]
     return outputdata_df 
 
 # Run data read functions
@@ -415,6 +419,33 @@ def get_catchment_boundary(gdf, fips_list):
         return dissolved
     return None
 
+print("Pre-processing spatial layers for instantaneous callback performance...", flush=True)
+
+def precompute_geojson(gdf, filter_col, simplify_val):
+    # Isolate California (FIPS "06")
+    temp = gdf[gdf[filter_col] == "06"].copy()
+    
+    # Apply geometry simplification early while still in the projected CRS (EPSG:3857)
+    temp['geometry'] = temp.geometry.simplify(simplify_val, preserve_topology=True)
+    
+    # Project to WGS84 (EPSG:4326) which Plotly requires for coordinate reading
+    if temp.crs != "EPSG:4326":
+        temp = temp.to_crs(epsg=4326)
+        
+    # Return a lightweight parsed Python dictionary map structure
+    return json.loads(temp.geometry.to_json()), temp
+
+# Set baseline simplification tolerance (Higher number = smaller payload = faster render)
+sim_tol = 400 if workstation == "remote" else 100
+
+# Execute once at startup: Stores the shape structures permanently in global memory
+geojson_county_2010, county_shapes_2010 = precompute_geojson(county_projected_2010 if workstation == "remote" else county_2010, "STATEFP10", sim_tol)
+geojson_county_2020, county_shapes_2020 = precompute_geojson(county_projected_2020 if workstation == "remote" else county_2020, "STATEFP", sim_tol)
+geojson_censustract_2010, tract_shapes_2010 = precompute_geojson(censustract_projected_2010, "STATEFP10", sim_tol)
+geojson_censustract_2020, tract_shapes_2020 = precompute_geojson(censustract_projected_2020, "STATEFP", sim_tol)
+
+
+
 #==============================================================================
 # DASH INTERACTIVE APPLICATION LAYOUT
 #==============================================================================
@@ -522,6 +553,14 @@ app.layout = html.Div(style={
     
     # Bottom Footer Citations & Portals
     html.Footer(style={'marginTop': '30px', 'borderTop': '2px solid #ccc', 'paddingTop': '20px'}, children=[
+        html.H4("Definitions", style={'color': '#444', 'fontWeight': 'normal'}),
+        html.Div(style={'display': 'flex', 'justifyContent': 'space-between', 'fontSize': '14px'}, children=[
+            dcc.Markdown("""
+            - Adults are individuals 18 or older; adolescents/teens ages 12-17; and children ages 0-11.
+            - Obesity is defined as a Body Mass Index of 30 or higher.
+            - Overweight is defined as a Body Mass Index of 25 to <30.
+            """, style={'flex': '1'})
+        ]),
         html.H4("Additional Resources", style={'color': '#444', 'fontWeight': 'normal'}),
         html.Div(style={'display': 'flex', 'justifyContent': 'space-between', 'fontSize': '14px'}, children=[
             dcc.Markdown("""
@@ -552,67 +591,34 @@ app.layout = html.Div(style={
 def update_interactive_map(selected_factor, selected_year, selected_geo, selected_catchment, prod_selection):
     is_production = 'prod' in prod_selection
     
-    # 1. ADJUST TOLERANCE FOR METERS (EPSG:3857)
-    # Your previous tolerances (0.015/0.0005) were meant for degrees. 
-    # For meters, 500 meters (low-fi) or 10 meters (high-fi) works beautifully.
+    # ADJUST TOLERANCE FOR METERS (EPSG:3857)
     simplification_tolerance = 10 if is_production else 500
-    
-    # 2. ENSURE LOCAL COPIES ARE EXPLICITLY PROJECTED BEFORE SIMPLIFYING
-    # This prevents the centroid/simplification geometric warning entirely.
-    if workstation == "remote":
-        county_2010_gdf = county_projected_2010.copy()
-        county_2020_gdf = county_projected_2020.copy()
-        censustract_2010_gdf = censustract_projected_2010.copy()
-        censustract_2020_gdf = censustract_projected_2020.copy()
+
+    if selected_year == 2022:
+        base_shapes = county_shapes_2020.copy() if selected_geo == "county" else tract_shapes_2020.copy()
+        geo_json_obj = geojson_county_2020 if selected_geo == "county" else geojson_censustract_2020
+        geo_join_col = "GEOID"
+        year_suffix = "2020"
     else:
-        # Fallback for local environment if CRS isn't projected yet
-        county_2010_gdf = county_2010.to_crs(epsg=3857)
-        county_2020_gdf = county_2020.to_crs(epsg=3857)
-        censustract_2010_gdf = censustract_2010.to_crs(epsg=3857)
-        censustract_2020_gdf = censustract_2020.to_crs(epsg=3857)
-
-    # Apply the simplification safely on projected coordinate data
-    county_2010_gdf['geometry'] = county_2010_gdf.geometry.simplify(simplification_tolerance, preserve_topology=True)
-    county_2020_gdf['geometry'] = county_2020_gdf.geometry.simplify(simplification_tolerance, preserve_topology=True)
-    censustract_2010_gdf['geometry'] = censustract_2010_gdf.geometry.simplify(simplification_tolerance, preserve_topology=True)
-    censustract_2020_gdf['geometry'] = censustract_2020_gdf.geometry.simplify(simplification_tolerance, preserve_topology=True)
-
-    # Step out dataset selection depending on chosen survey year and geography
-    if selected_year == 2022 and selected_geo == "county":
-        base_shapes = county_2020_gdf[county_2020_gdf["STATEFP"] == "06"].copy()
-        geo_join_col = "GEOID"
-    elif selected_year == 2022 and selected_geo == "censustract":
-        base_shapes = censustract_2020_gdf[censustract_2020_gdf["STATEFP"] == "06"].copy()
-        geo_join_col = "GEOID"
-    elif selected_year in [2016, 2018, 2020] and selected_geo == "county":
-        # FIXED THE TYPO HERE: removed the misplaced bracket and .copy() inside the string filter
-        base_shapes = county_2010_gdf[county_2010_gdf["STATEFP10"] == "06"].copy()
+        base_shapes = county_shapes_2010.copy() if selected_geo == "county" else tract_shapes_2010.copy()
+        geo_json_obj = geojson_county_2010 if selected_geo == "county" else geojson_censustract_2010
         geo_join_col = "GEOID10"
-    elif selected_year in [2016, 2018, 2020] and selected_geo == "censustract":
-        base_shapes = censustract_2010_gdf[censustract_2010_gdf["STATEFP10"] == "06"].copy()
-        geo_join_col = "GEOID10"
+        year_suffix = "2010"
 
-    # Merge shapefile boundaries with year survey data
+    # Isolate targeting survey demographics datasets
     if selected_year == 2016:
-        if selected_geo == "county":
-            datasource = base_shapes.merge(obesogenicfactors_counties_2016, left_on=geo_join_col, right_on="county_fips")
-        elif selected_geo == "censustract":
-            datasource = base_shapes.merge(obesogenicfactors_censustracts_2016, left_on=geo_join_col, right_on="censustract_fips")
+        survey_df = obesogenicfactors_counties_2016 if selected_geo == "county" else obesogenicfactors_censustracts_2016
     elif selected_year == 2018:
-        if selected_geo == "county":
-            datasource = base_shapes.merge(obesogenicfactors_counties_2018, left_on=geo_join_col, right_on="county_fips")
-        elif selected_geo == "censustract":
-            datasource = base_shapes.merge(obesogenicfactors_censustracts_2018, left_on=geo_join_col, right_on="censustract_fips")
+        survey_df = obesogenicfactors_counties_2018 if selected_geo == "county" else obesogenicfactors_censustracts_2018
     elif selected_year == 2020:
-        if selected_geo == "county":
-            datasource = base_shapes.merge(obesogenicfactors_counties_2020, left_on=geo_join_col, right_on="county_fips")
-        elif selected_geo == "censustract":
-            datasource = base_shapes.merge(obesogenicfactors_censustracts_2020, left_on=geo_join_col, right_on="censustract_fips")
-    elif selected_year == 2022:
-        if selected_geo == "county":
-            datasource = base_shapes.merge(obesogenicfactors_counties_2022, left_on=geo_join_col, right_on="county_fips")
-        elif selected_geo == "censustract":
-            datasource = base_shapes.merge(obesogenicfactors_censustracts_2022, left_on=geo_join_col, right_on="censustract_fips")
+        survey_df = obesogenicfactors_counties_2020 if selected_geo == "county" else obesogenicfactors_censustracts_2020
+    else:
+        survey_df = obesogenicfactors_counties_2022 if selected_geo == "county" else obesogenicfactors_censustracts_2022
+
+    # High performance index merge
+    right_key = "county_fips" if selected_geo == "county" else "censustract_fips"
+    datasource = base_shapes.merge(survey_df, left_on=geo_join_col, right_on=right_key, how="left")
+
 
     # Project coordinates cleanly into WGS84 EPSG:4326 map coordinate system AFTER calculations are complete
     if datasource.crs != "EPSG:4326":
@@ -657,16 +663,20 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
 
     color_column_to_use = 'styled_color_group'
     
-    if selected_catchment != 'all':
-        def assign_color_group(row):
-            val = row[col_base]
-            if pd.isna(val) or val == "Data Missing":
-                val = "Data Missing"
+def assign_color_group(row):
+        if selected_catchment == 'all':
+            return row[col_base] if pd.notna(row[col_base]) else "Data Missing"
+        else:
+            # Dynamically look up 'county_fips' or 'censustract_fips' depending on right_key
+            fips_val = str(row[right_key]) if pd.notna(row[right_key]) else ""
+            # Slice the first 5 digits so a tract identifier matches a county target FIPS
+            county_prefix = fips_val[:5] 
             
-            if row['county_fips'] in target_fips:
-                return val
+            if county_prefix in target_fips:
+                return row[col_base] if pd.notna(row[col_base]) else "Data Missing"
             else:
-                return f"{val} - outside catchment area"
+                base_val = row[col_base] if pd.notna(row[col_base]) else "Data Missing"
+                return f"{base_val} - outside catchment area"
 
         datasource[color_column_to_use] = datasource.apply(assign_color_group, axis=1)
         
@@ -696,16 +706,15 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
     geojson_data = json.loads(valid_spatial_gdf.geometry.to_json())
 
     # Append visual "ghost rows" to force empty categorical elements to display in the legend
-    ghost_records = []
-    for category_item in final_categories:
-        ghost_records.append({
-            "county_fips": f"ghost_{category_item}",
-            "county": "Ghost Record Boundary",
-            color_column_to_use: category_item,
-            selected_factor: np.nan,
-            "display_pct": np.nan,
+ghost_records = [
+        {
+            right_key: f"ghost_{cat}", # Dynamically matches active FIPS column name
+            "county" if selected_geo == "county" else "censustract": "Ghost",
+            col_base: cat,
             "geometry": None
-        })
+        }
+        for cat in final_categories
+    ]
     ghost_df = pd.DataFrame(ghost_records)
     ghost_gdf = gpd.GeoDataFrame(ghost_df, geometry='geometry', crs=datasource.crs)
 
@@ -718,8 +727,8 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
 
     fig = px.choropleth_mapbox(
         datasource,
-        geojson=geojson_data,
-        locations=datasource.index,
+        geojson=geo_json_obj,
+        locations=datasource[geo_join_col].combine_first(datasource['county_fips']),
         color=color_column_to_use,
         color_discrete_map=active_color_discrete_map,
         category_orders={color_column_to_use: final_categories},
@@ -727,7 +736,7 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         zoom=5.3,
         center=map_center,
         opacity=0.85,
-        custom_data=["county", color_column_to_use, "display_pct"]
+        custom_data=["county" if selected_geo == "county" else "censustract", color_column_to_use, "display_pct"]
     )
 
     # Create dissolved boundary outline layer for our map layout layers list
@@ -745,7 +754,7 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
                 "source": geojson_boundary,
                 "type": "line",
                 "color": "#111111",  # High-contrast bold black border outline
-                "line": {"width": 3.5},  # Nested correctly to bypass Plotly layout schemas!
+                "line": {"width": 3.5},  # Nested correctly to bypass Plotly layout schemas
                 "opacity": 0.95
             })
 
