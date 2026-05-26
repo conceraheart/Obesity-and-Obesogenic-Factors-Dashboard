@@ -39,15 +39,18 @@ from dash.dependencies import Input, Output
 # Consequently the DREAM Lab workstation uses an html output instead of running on the local
 # server. There is some functionality lost - there are no text links in the html.  
 # The workstation variable toggles between the two environments. 
-workstation = "remote"
+workstation = "local"
 
 # Read in shapefile data for counties and census tracts
+# Note: Tigerline shapefiles will show water boundaries. NHGIS shapefiles do not.
 if workstation == "local":
-    county_2010 = gpd.read_file( "C:/Users/nelso/Downloads/tl_2010_06_county10/tl_2010_06_county10.shp" )
-    county_2020 = gpd.read_file( "C:/Users/nelso/Downloads/tl_2010_06_county10/tl_2020_06_county10.shp" )
-    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Obesogenic Factors/"
-    checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/ObesogenicFactors_dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_counties_20260512.xlsx"
-    checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/ObesogenicFactors_dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_censustracts_20260512.xlsx"
+    county_2010 = gpd.read_file( "C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2010.shp" )
+    county_2020 = gpd.read_file( "C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2020.shp" )
+    censustract_2010 = gpd.read_file ( "C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2010.shp" )
+    censustract_2020 = gpd.read_file ( "C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2020.shp" )
+    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/"
+    checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_counties_20260525.xlsx"
+    checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCC_obesogenicfactors_censustracts_20260525.xlsx"
 elif workstation == "remote":
     county_2010 = gpd.read_file ( "Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0035_shape/US_county_2010.shp" )
     county_2020 = gpd.read_file ( "Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0039_shape/US_county_2020.shp" )
@@ -191,7 +194,7 @@ def counties_readxlsx(file_path, var_string, id_col_to_fix=None, target_len=5):
         
     sourcedata_df = sourcedata_df.rename(columns={
         'estimate': var_string, 
-        'geoId': 'county_fips', 
+        'geoid': 'county_fips', 
         'geoName': 'county', 
         "suppressed": f"{var_string}_suppressed", 
         "yr": "year_string"
@@ -201,16 +204,15 @@ def counties_readxlsx(file_path, var_string, id_col_to_fix=None, target_len=5):
     return outputdata_df 
 
 # Census Tracts
-def censustracts_readxlsx(file_path, file_path_2022, var_string, id_col_to_fix=None, target_len=11):
+def censustracts_readxlsx(file_path, var_string, id_col_to_fix=None, target_len=11):
     """
     Read sheets from .xlsx and append into single dataframe.
     """
     # Read sheets into dictionary. #
     sourcedata = pd.read_excel(file_path, sheet_name=None)
-    sourcedata_2022 = pd.read_excel(file_path_2022, sheet_name=None)
 
     # Extract dataframes by position #
-    sourcedata_list = list(sourcedata.values()) + list(sourcedata_2022.values())
+    sourcedata_list = list(sourcedata.values())
 
     # Combine list into master dataframe. #
     sourcedata_df = pd.concat(sourcedata_list, ignore_index=True)
@@ -270,16 +272,16 @@ def censustracts_readxlsx(file_path, file_path_2022, var_string, id_col_to_fix=N
 
 # Run data read functions
 # Counties
-adultobesity_counties = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Obesity_Counties.xlsx", 
-                                          var_string="adultobesity", id_col_to_fix="geoId")
-childoverweight_counties = counties_readxlsx( f"{obesogenicfactors_filepath}Child Overweight_Counties.xlsx", 
-                                             var_string="childoverweight", id_col_to_fix="geoId").drop(columns=["county", "year_string"])
-teenoverweightobese_counties = counties_readxlsx( f"{obesogenicfactors_filepath}Teen_Overweight_Obesity_Counties.xlsx", 
-                                                 var_string="teenoverweightobese", id_col_to_fix="geoId").drop(columns=["county", "year_string"])
-adultfoodinsecurity_counties = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Food Insecurity_Counties.xlsx",
-                                                 var_string="adultfoodinsecurity", id_col_to_fix="geoId").drop(columns=["county", "year_string"])
-adultsugarybeverage_counties = counties_readxlsx( f"{obesogenicfactors_filepath}Adult Sugar Bev_Counties.xlsx",
-                                                 var_string="adultsugarybev", id_col_to_fix="geoId").drop(columns=["county", "year_string"])
+adultobesity_counties = counties_readxlsx( f"{obesogenicfactors_filepath}adultobesity_counties.xlsx", 
+                                          var_string="adultobesity", id_col_to_fix="geoid")
+childoverweight_counties = counties_readxlsx( f"{obesogenicfactors_filepath}childoverweight_counties.xlsx", 
+                                             var_string="childoverweight", id_col_to_fix="geoid").drop(columns=["county", "year_string"])
+teenoverweightobese_counties = counties_readxlsx( f"{obesogenicfactors_filepath}teenoverweightobese_counties.xlsx", 
+                                                 var_string="teenoverweightobese", id_col_to_fix="geoid").drop(columns=["county", "year_string"])
+adultfoodinsecurity_counties = counties_readxlsx( f"{obesogenicfactors_filepath}adultfoodinsecurity_counties.xlsx",
+                                                 var_string="adultfoodinsecurity", id_col_to_fix="geoid").drop(columns=["county", "year_string"])
+adultsugarybeverage_counties = counties_readxlsx( f"{obesogenicfactors_filepath}adultsugarbev_counties.xlsx",
+                                                 var_string="adultsugarybev", id_col_to_fix="geoid").drop(columns=["county", "year_string"])
 
 obesogenicfactors_counties = adultobesity_counties.merge(childoverweight_counties, how="outer", on=["county_fips", "year"])\
     .merge(teenoverweightobese_counties, how="outer", on=["county_fips", "year"])\
@@ -290,20 +292,15 @@ obesogenicfactors_counties = adultobesity_counties.merge(childoverweight_countie
 # I have standardized the source .xlsx sheets to "geoid" and "yr"
 # Some of the source sheets had no provided "yr" label, but the sheets were labeled by year. 
 # Other sheets had different capitalization for "geoid" and "yr".
-adultobesity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Obesity_Tracts.xlsx",
-                                              "M:/DREAM Lab/Obesity Supplement/Source Data/Adult Obesity_Tracts_21-22.xlsx",
+adultobesity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}adultobesity_censustracts.xlsx",
                                               var_string="adultobesity", id_col_to_fix="geoid")
-childoverweight_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Child Overweight_Tracts.xlsx", 
-                                                 "M:/DREAM Lab/Obesity Supplement/Source Data/Child Overweight_Tracts_21-22.xlsx",
+childoverweight_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}childoverweight_censustracts.xlsx", 
                                                  var_string="childoverweight", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-teenoverweightobese_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Teen Overweight_Obesity_Tracts.xlsx", 
-                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Teen Overweight_Obesity_Tracts_21-22.xlsx",
+teenoverweightobese_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}teenoverweightobese_censustracts.xlsx", 
                                                      var_string="teenoverweightobese", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-adultfoodinsecurity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Food Insecurity_Tracts.xlsx",
-                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Adult Food Insecurity_Tracts_21-22.xlsx",
+adultfoodinsecurity_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}adultfoodinsecurity_censustracts.xlsx",
                                                      var_string="adultfoodinsecurity", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
-adultsugarybeverage_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}Adult Sugar Bev_Tracts.xlsx",
-                                                     "M:/DREAM Lab/Obesity Supplement/Source Data/Adult sugar bev_Tracts_21-22.xlsx",
+adultsugarybeverage_censustracts = censustracts_readxlsx( f"{obesogenicfactors_filepath}adultsugarbev_censustracts.xlsx",
                                                      var_string="adultsugarybev", id_col_to_fix="geoid").drop(columns=["censustract", "year_string"])
 
 obesogenicfactors_censustracts = adultobesity_censustracts.merge(childoverweight_censustracts, how="outer", on=["censustract_fips", "year"])\
@@ -673,12 +670,14 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
 
         datasource[color_column_to_use] = datasource.apply(assign_color_group, axis=1)
         
-        # Populate dynamic category maps with faded/transparent RGBA values (satisfies schema validator)
+        # Populate dynamic category maps with faded/transparent RGBA values
+        # Legacy option to include different legend for catchment area / outside catchment area
+        # labels.
         for key, hex_color in base_colors.items():
             faded_rgba = hex_to_rgba(hex_color, alpha=0.13)
             active_color_discrete_map[f"{key} - outside catchment area"] = faded_rgba
             
-        final_categories = cat_order + ["Data Missing"] + [f"{c} - outside catchment area" for c in cat_order] + ["Data Missing - outside catchment area"]
+        final_categories = cat_order + ["Data Missing"]
     else:
         datasource[color_column_to_use] = datasource[col_base].fillna("Data Missing")
         final_categories = cat_order + ["Data Missing"]
@@ -692,11 +691,11 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         lambda x: round(x * 100, 1) if pd.notna(x) else np.nan
     )
 
-    # 1. Compile the GeoJSON boundary geometry using ONLY rows with valid geometry shapes
+    # Compile the GeoJSON boundary geometry using ONLY rows with valid geometry shapes
     valid_spatial_gdf = datasource[datasource['geometry'].notna()]
     geojson_data = json.loads(valid_spatial_gdf.geometry.to_json())
 
-    # 2. Append visual "ghost rows" to force empty categorical elements to display in the legend
+    # Append visual "ghost rows" to force empty categorical elements to display in the legend
     ghost_records = []
     for category_item in final_categories:
         ghost_records.append({
@@ -731,7 +730,7 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         custom_data=["county", color_column_to_use, "display_pct"]
     )
 
-    # 3. Create dissolved boundary outline layer for our map layout layers list
+    # Create dissolved boundary outline layer for our map layout layers list
     mapbox_layers_list = []
     if selected_catchment != 'all':
         boundary_gdf = get_catchment_boundary(datasource, target_fips)
