@@ -1,11 +1,28 @@
 # HDFCCC - Obesity Supplement - Obesogenic Factor Dashboard #
 # Code by Nelson Wu #
-# These codes read in the requisite shape files and CHIS obesity #
-# source data; clean and categorize the obesogenic factor data; #
-# merge the shapefiles with specific, year-over-year obesogenic #
-# data; plot this out in specific visualizations; and output this #
-# in a user-friendly, toggle-able set of visualizations. #
 
+# These codes pull in source data provided by California Health Interview Survey, 
+# process them into a wide, year-by-year format for the included variables, 
+# output this intermediate data to a checkpoint file, then use this data
+# to render geospatial visualizations for obesity and obesogenic factors across California. 
+
+# The dashboard includes additional features like a toggle for debug-optimized / production-quality 
+# rendering, dropdown menus for variables / year / catchment areas. The catchment overlay 
+# menu will place a boundary around catchment areas for Stanford Cancer Institute, HDFCCC, and
+# cities who have instated a sugary beverage tax policy. Geographies outside the boundary are made
+# more opaque. The dashboard also includes additional text descriptions for the data used, disclaimers, 
+# and hyperlinks to additional resources. 
+
+# To do:
+# - "Apply changes" button to set options before rendering.
+# - Loading bar / "processing" indicator for better user responsiveness.
+# - Button-activated functionality for side-by-side visualizations.
+
+
+
+
+# Activate virtual environment
+# .\\.venv\scripts\activate.ps1
 import os
 import json
 import numpy as np
@@ -137,14 +154,14 @@ print("Pre-building high vs debug spatial layers...", flush=True)
 def generate_spatial_cache(gdf, filter_col, state_code, target_id_col, prod_tol, debug_tol):
     california_shapes = gdf[gdf[filter_col] == state_code].copy()
     
-    # 1. High Fidelity Geometry Cache
+    # High Fidelity Geometry Cache
     prod_shapes = california_shapes.copy()
     prod_shapes['geometry'] = prod_shapes.geometry.simplify(prod_tol, preserve_topology=True)
     if prod_shapes.crs != "EPSG:4326": prod_shapes = prod_shapes.to_crs(epsg=4326)
     prod_shapes[target_id_col] = prod_shapes[target_id_col].astype(str).str.strip()
     prod_json = json.loads(prod_shapes.to_json())
 
-    # 2. Aggressive Debug Optimization Cache (Significantly drops coordinate arrays)
+    # Aggressive Debug Optimization Cache (Significantly drops coordinate arrays)
     debug_shapes = california_shapes.copy()
     debug_shapes['geometry'] = debug_shapes.geometry.simplify(debug_tol, preserve_topology=True)
     if debug_shapes.crs != "EPSG:4326": debug_shapes = debug_shapes.to_crs(epsg=4326)
@@ -271,17 +288,16 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
     html.Footer(style={'marginTop': '30px', 'borderTop': '2px solid #ccc', 'paddingTop': '20px'}, children=[
         html.H4("Definitions", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""Per California Health Interview Survey documentation:
-        * Adults are individuals 18 or older; adolescents/teens ages 12-17; and children ages 2-11.        
-        * For adults, obesity is defined as a Body Mass Index of 30 or greater. 
-        * For teens, overweight or obese is defined as a Body Mass Index in the 85th percentile or higher.
-        * For children, overweight for age is defined as a weight at the 95th percentile or higher.
-        * Food insecurity consists of low-income (200% Federal Poverty Level or below) who report being food insecure in the past xxxx _timeperiod_.
-        * Sugar-sweetened beverage consumption consists of adults who consume 1+ sugar-sweetened beverages per day. 
+* Adults are individuals 18 or older; adolescents/teens ages 12-17; and children ages 2-11.        
+* For adults, obesity is defined as a Body Mass Index of 30 or greater. 
+* For teens, overweight or obese is defined as a Body Mass Index in the 85th percentile or higher.
+* For children, overweight for age is defined as a weight at the 95th percentile or higher.
+* Food insecurity consists of low-income (200% Federal Poverty Level or below) who report being food insecure in the past xxxx.
+* Sugar-sweetened beverage consumption consists of adults who consume 1+ sugar-sweetened beverages per day. 
         """),
         html.H4("Disclaimers", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""* California Health Interview Survey obscures estimates when populations are less than 1,000 individuals or when estimates are statistically unstable.
-        * Adult sugary beverage consumption was not collected by CHIS for their 2017-2018 survey.
-        * 2015-2016, 2017-2018, 2019-2020 data are plotted on 2010 Decennial Census geographies; 2021-2022 is plotted on 2020 Decennial Census geographies."""),
+* 2015-2016, 2017-2018, 2019-2020 data are plotted on 2010 Decennial Census geographies; 2021-2022 is plotted on 2020 Decennial Census geographies."""),
         html.H4("Additional Resources", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("[Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | [National Cancer Institute (NCI)](https://www.cancer.gov) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
     ])
@@ -421,6 +437,6 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
 
 if __name__ == '__main__':
     if workstation == "local":
-        app.run(debug=True)
+        app.run(debug=False)
     elif workstation == "remote":
-        app.run(debug=True, host="0.0.0.0", port=8050)
+        app.run(debug=False, host="0.0.0.0", port=8050)
