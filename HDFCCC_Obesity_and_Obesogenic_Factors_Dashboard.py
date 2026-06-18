@@ -40,16 +40,16 @@ from shapely.geometry import Polygon, MultiPolygon
 #==============================================================================
 # READ IN SOURCE DATA & CATCHMENT CLASSIFICATIONS
 #==============================================================================
-workstation = "remote"
+workstation = "local"
 
 if workstation == "local":
     county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2010.shp")
     county_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2020.shp")
     censustract_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2010.shp")
     censustract_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2020.shp")
-    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/"
-    checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260525.xlsx"
-    checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260525.xlsx"
+    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/20260616/"
+    checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260616.xlsx"
+    checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260616.xlsx"
 elif workstation == "remote":
     county_2010 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0035_shape/US_county_2010.shp")
     county_2020 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0039_shape/US_county_2020.shp")
@@ -104,8 +104,8 @@ def load_and_clean_data(file_name, var_string, id_col, target_len):
         out_col = "censustract_fips"
         out_name = "censustract"
 
-    return df.rename(columns={'estimate': var_string, 'geoid': out_col, 'geoName': out_name, "suppressed": f"{var_string}_suppressed", "yr": "year_string"}).drop(columns=["lb95", "ub95", "prevalence",
-                                                                                                                                                                           "variable", "geoType", "population"])
+    return df.rename(columns={'estimate': var_string, 'geoid': out_col, 'name': out_name, "suppressed": f"{var_string}_suppressed", "yr": "year_string"}).drop(columns=["CI_LB95", "CI_UB95", "prevalence",
+                                                                                                                                                                           "variable", "geotype", "population"])
 
 # Read and process matrices
 print("Loading workbook assets...", flush=True)
