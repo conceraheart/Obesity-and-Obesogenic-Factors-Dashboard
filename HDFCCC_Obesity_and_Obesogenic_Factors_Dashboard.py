@@ -43,10 +43,10 @@ from shapely.geometry import Polygon, MultiPolygon
 workstation = "local"
 
 if workstation == "local":
-    county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2010.shp")
-    county_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/US_county_2020.shp")
-    censustract_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2010.shp")
-    censustract_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/US_tract_2020.shp")
+    county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/CA_county_2010.shp")
+    county_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/CA_county_2020.shp")
+    censustract_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/CA_tract_2010.shp")
+    censustract_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/CA_tract_2020.shp")
     obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/20260616/"
     checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260616.xlsx"
     checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260616.xlsx"
@@ -287,13 +287,11 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
     ]),
     html.Footer(style={'marginTop': '30px', 'borderTop': '2px solid #ccc', 'paddingTop': '20px'}, children=[
         html.H4("Definitions", style={'color': '#444', 'fontWeight': 'normal'}),
-        dcc.Markdown("""Per California Health Interview Survey documentation:
-* Adults are individuals 18 or older; adolescents/teens ages 12-17; and children ages 2-11.        
-* For adults, obesity is defined as a Body Mass Index of 30 or greater. 
-* For teens, overweight or obese is defined as a Body Mass Index in the 85th percentile or higher.
-* For children, overweight for age is defined as a weight at the 95th percentile or higher.
-* Food insecurity consists of low-income (200% Federal Poverty Level or below) who report being food insecure in the past xxxx.
-* Sugar-sweetened beverage consumption consists of adults who consume 1+ sugar-sweetened beverages per day. 
+        dcc.Markdown("""Adult (18 or older) obesity is defined as a body mass index (BMI) of 30.0 or greater. BMI is calculated using respondent's self-reported weight and height.  
+Teen respondents (12-17) are classified as overweight/obese if they rank higher than the 85th percentile in the CDC 2010 recommendations on assigning BMI.  
+Children are classified as overweight for their age, and is constructed using sex, age (in months), and weight (does not factor in height).  
+Adult food insecurity includes individuals who are low-income and food insecure.  
+Adult sugar-sweetened beverage consumption includes individuals who consume soda or sweet beverages at least once a day.      
         """),
         html.H4("Disclaimers", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""* California Health Interview Survey obscures estimates when populations are less than 1,000 individuals or when estimates are statistically unstable.
