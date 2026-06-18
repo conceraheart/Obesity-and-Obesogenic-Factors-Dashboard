@@ -546,6 +546,18 @@ def sync_maps(relayout_data, dual_mode):
         
     return no_update
 
+# Dismiss Status Indicator
+@app.callback(
+    Output('status-alert-container', 'style', allow_duplicate=True),
+    [Input('close-status-btn', 'n_clicks')],
+    prevent_initial_call=True
+)
+def dismiss_status(n_clicks):
+    # When the close button is clicked, hide the container again
+    if n_clicks > 0:
+        return {'display': 'none'}
+    return no_update
+
 if __name__ == '__main__':
     if workstation == "local":
         app.run(debug=False)
