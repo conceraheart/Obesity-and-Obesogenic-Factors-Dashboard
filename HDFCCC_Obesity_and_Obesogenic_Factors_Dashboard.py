@@ -1,4 +1,4 @@
-# HDFCCC - Obesity Supplement - Obesogenic Factor Dashboard #
+﻿# HDFCCC - Obesity Supplement - Obesogenic Factor Dashboard #
 # Code by Nelson Wu #
 
 # These codes pull in source data provided by California Health Interview Survey, 
@@ -23,6 +23,8 @@
 
 # Activate virtual environment
 # .\\.venv\scripts\activate.ps1
+
+
 import os
 import json
 import numpy as np
@@ -33,14 +35,14 @@ import openpyxl
 import sys
 
 import dash
-from dash import dcc, html
+from dash import dcc, html, State, Patch, no_update
 from dash.dependencies import Input, Output
 from shapely.geometry import Polygon, MultiPolygon
 
 #==============================================================================
 # READ IN SOURCE DATA & CATCHMENT CLASSIFICATIONS
 #==============================================================================
-workstation = "local"
+workstation = "remote"
 
 if workstation == "local":
     county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/CA_county_2010.shp")
@@ -51,13 +53,13 @@ if workstation == "local":
     checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260616.xlsx"
     checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260616.xlsx"
 elif workstation == "remote":
-    county_2010 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0035_shape/US_county_2010.shp")
-    county_2020 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/County_level/nhgis0039_shape/US_county_2020.shp")
-    censustract_2010 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/ALL_US_CT/US_tract_2010.shp")
-    censustract_2020 = gpd.read_file("Y:/GIS workload/Libraries/GIS Library/Census_Area_Units/ALL_US_CT/US_tract_2020.shp")
+    county_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_county_2010.shp")
+    county_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_county_2020.shp")
+    censustract_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2010.shp")
+    censustract_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2020.shp")
     obesogenicfactors_filepath = "M:/DREAM Lab/Obesity Supplement/Source Data/"
-    checkpoint_outputdatapath_counties = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260526.xlsx"
-    checkpoint_outputdatapath_censustracts = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260526.xlsx"
+    checkpoint_outputdatapath_counties = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260618.xlsx"
+    checkpoint_outputdatapath_censustracts = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260618.xlsx"
 
 # Project coordinates to metric Web Mercator for accurate, uniform distance calculation
 county_projected_2010 = county_2010.to_crs(epsg=3857)
@@ -104,8 +106,7 @@ def load_and_clean_data(file_name, var_string, id_col, target_len):
         out_col = "censustract_fips"
         out_name = "censustract"
 
-    return df.rename(columns={'estimate': var_string, 'geoid': out_col, 'name': out_name, "suppressed": f"{var_string}_suppressed", "yr": "year_string"}).drop(columns=["CI_LB95", "CI_UB95", "prevalence",
-                                                                                                                                                                           "variable", "geotype", "population"])
+    return df.rename(columns={'estimate': var_string, 'geoid': out_col, 'name': out_name, "suppressed": f"{var_string}_suppressed", "yr": "year_string"}).drop(columns=["CI_LB95", "CI_UB95", "prevalence", "variable", "geotype", "population"], errors='ignore')
 
 # Read and process matrices
 print("Loading workbook assets...", flush=True)
@@ -173,12 +174,12 @@ def generate_spatial_cache(gdf, filter_col, state_code, target_id_col, prod_tol,
 # Setup dual-layer spatial pipeline
 spatial_pipeline = {
     "county": {
-        2010: generate_spatial_cache(county_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=100, debug_tol=1200),
-        2020: generate_spatial_cache(county_projected_2020, "STATEFP", "06", "GEOID", prod_tol=100, debug_tol=1200)
+        2010: generate_spatial_cache(county_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=20, debug_tol=1200),
+        2020: generate_spatial_cache(county_projected_2020, "STATEFP", "06", "GEOID", prod_tol=20, debug_tol=1200)
     },
     "censustract": {
-        2010: generate_spatial_cache(censustract_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=150, debug_tol=2200),
-        2020: generate_spatial_cache(censustract_projected_2020, "STATEFP", "06", "GEOID", prod_tol=150, debug_tol=2200)
+        2010: generate_spatial_cache(censustract_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=5, debug_tol=2200),
+        2020: generate_spatial_cache(censustract_projected_2020, "STATEFP", "06", "GEOID", prod_tol=5, debug_tol=2200)
     }
 }
 
@@ -222,69 +223,132 @@ def hex_to_rgba(hex_val, alpha=1.0):
     return f"rgba({r}, {g}, {b}, {alpha})"
 
 #==============================================================================
+# UI CONTROL BUILDERS
+#==============================================================================
+# Options reused across both maps
+factor_opts = [
+    {'label': 'Adult Obesity', 'value': 'adultobesity'},
+    {'label': 'Child Overweight', 'value': 'childoverweight'},
+    {'label': 'Teen Overweight/Obese', 'value': 'teenoverweightobese'},
+    {'label': 'Adult Food Insecurity', 'value': 'adultfoodinsecurity'},
+    {'label': 'Adult Sugary Beverage Consumption', 'value': 'adultsugarybev'}
+]
+year_opts = [
+    {'label': '2015-2016', 'value': 2016}, {'label': '2017-2018', 'value': 2018},
+    {'label': '2019-2020', 'value': 2020}, {'label': '2021-2022', 'value': 2022}
+]
+geo_opts = [
+    {'label': 'County', 'value': 'county'}, {'label': 'Census Tract', 'value': 'censustract'}
+]
+catchment_opts = [
+    {'label': 'California State', 'value': 'all'},
+    {'label': 'Stanford Cancer Institute Catchment Area', 'value': 'stanford_catchment'},
+    {'label': 'HDFCCC Catchment Area', 'value': 'HDFCCC_catchment'},
+    {'label': 'Sugary Beverage Policy Instated', 'value': 'sugarybeveragepolicy_cities'}
+]
+
+def create_control_panel(map_id_prefix, title, is_secondary=False):
+    return html.Div(id=f'panel-{map_id_prefix}', style={'marginBottom': '20px', 'display': 'none' if is_secondary else 'block'}, children=[
+        html.H4(title, style={'borderBottom': '1px solid #ddd', 'paddingBottom': '5px', 'color': '#333', 'marginTop': '15px'}),
+        
+        html.Label("Factor:", style={'fontWeight': 'bold', 'display': 'block', 'fontSize': '14px'}),
+        dcc.Dropdown(id=f'factor-dropdown-{map_id_prefix}', options=factor_opts, value='adultobesity', clearable=False, style={'marginBottom': '15px'}),
+        
+        html.Label("Time Frame:", style={'fontWeight': 'bold', 'display': 'block', 'fontSize': '14px'}),
+        dcc.Dropdown(id=f'year-dropdown-{map_id_prefix}', options=year_opts, value=2016, clearable=False, style={'marginBottom': '15px'}),
+        
+        html.Label("Geography:", style={'fontWeight': 'bold', 'display': 'block', 'fontSize': '14px'}),
+        dcc.RadioItems(id=f'geo-toggle-{map_id_prefix}', options=geo_opts, value='county', labelStyle={'display': 'block', 'marginBottom': '4px'}),
+        html.Br(),
+        
+        html.Label("Catchment Overlay:", style={'fontWeight': 'bold', 'display': 'block', 'fontSize': '14px'}),
+        dcc.RadioItems(id=f'catchment-toggle-{map_id_prefix}', options=catchment_opts, value='all', labelStyle={'display': 'block', 'marginBottom': '4px'}),
+    ])
+
+#==============================================================================
 # DASH LAYOUT
 #==============================================================================
 app = dash.Dash(__name__, title="Obesity & Obesogenic Factors Dashboard")
 
-app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': '30px', 'backgroundColor': '#fcfcfc', 'maxWidth': '1400px', 'margin': '0 auto'}, children=[
+app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': '30px', 'backgroundColor': '#fcfcfc', 'maxWidth': '1800px', 'margin': '0 auto'}, children=[
     html.Header(style={'borderBottom': '3px double #6E2C00', 'marginBottom': '25px', 'paddingBottom': '10px'}, children=[
         html.H1("Obesity & Obesogenic Factors Geospatial Demographics", style={'fontSize': '36px', 'color': '#052049', 'margin': '0', 'fontWeight': 'normal'}),
         html.P("DREAM Lab Demographic & Risk Assessment Spatial Interface", style={'fontStyle': 'italic', 'color': '#555'})
     ]),
-    html.Div(style={'display': 'flex', 'gap': '30px', 'flexWrap': 'wrap'}, children=[
-        html.Div(style={'flex': '1 1 350px', 'backgroundColor': '#f5f5f5', 'padding': '20px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)'}, children=[
-            html.H3("Obesity Data Explorer", style={'borderBottom': '1px solid #ddd', 'paddingBottom': '5px', 'color': '#333', 'fontWeight': 'normal'}),
+    
+    # REMOVED flexWrap: 'wrap' to lock the sidebar and maps to a single row
+    html.Div(style={'display': 'flex', 'gap': '20px', 'flexDirection': 'row'}, children=[
+        
+        # --- LEFT SIDEBAR: CONTROLS ---
+        # Added minWidth to ensure the sidebar doesn't get crushed by the maps
+        html.Div(style={'flex': '0 0 350px', 'minWidth': '350px', 'backgroundColor': '#f5f5f5', 'padding': '20px', 'borderRadius': '8px', 'boxShadow': '0 2px 4px rgba(0,0,0,0.05)', 'height': 'fit-content'}, children=[
             
-            html.Div(style={'marginBottom': '20px'}, children=[
-                html.Label("Obesity and Obesogenic Factors", style={'fontWeight': 'bold', 'display': 'block', 'marginBottom': '5px'}),
-                dcc.Dropdown(id='factor-dropdown', options=[
-                    {'label': 'Adult Obesity', 'value': 'adultobesity'},
-                    {'label': 'Child Overweight', 'value': 'childoverweight'},
-                    {'label': 'Teen Overweight/Obese', 'value': 'teenoverweightobese'},
-                    {'label': 'Adult Food Insecurity', 'value': 'adultfoodinsecurity'},
-                    {'label': 'Adult Sugary Beverage Consumption', 'value': 'adultsugarybev'}
-                ], value='adultobesity', clearable=False)
+            # Map 1 Controls
+            create_control_panel('1', 'Map 1 Options', is_secondary=False),
+            
+            # Dual Map Toggle
+            html.Div(style={'margin': '20px 0', 'padding': '15px 0', 'borderTop': '1px dashed #ccc', 'borderBottom': '1px dashed #ccc'}, children=[
+                dcc.Checklist(
+                    id='dual-map-toggle',
+                    options=[{'label': ' Enable Side-by-Side Comparison', 'value': 'dual'}],
+                    value=[],
+                    style={'fontWeight': 'bold', 'color': '#052049'}
+                )
             ]),
-
+            
+            # Map 2 Controls (Hidden by default)
+            create_control_panel('2', 'Map 2 Options', is_secondary=True),
+            
+            # Global rendering toggle
             html.Div(style={'marginBottom': '20px'}, children=[
-                html.Label("Time Frame:", style={'fontWeight': 'bold', 'display': 'block', 'marginBottom': '5px'}),
-                dcc.Dropdown(id='year-dropdown', options=[
-                    {'label': '2015-2016', 'value': 2016},
-                    {'label': '2017-2018', 'value': 2018},
-                    {'label': '2019-2020', 'value': 2020},
-                    {'label': '2021-2022', 'value': 2022}
-                ], value=2016, clearable=False)
-            ]),
-
-            html.Div(style={'marginBottom': '20px'}, children=[
-                html.Label("Census Geography", style={'fontWeight': 'bold', 'display': 'block', 'marginBottom': '5px'}),
-                dcc.RadioItems(id='geo-toggle', options=[
-                    {'label': 'County', 'value': 'county'},
-                    {'label': 'Census Tract', 'value': 'censustract'}
-                ], value='county', labelStyle={'display': 'block', 'marginBottom': '8px'})
-            ]),
-
-            html.Div(style={'marginBottom': '20px'}, children=[
-                html.Label("Catchment Area / Sugary Beverage Tax Policy", style={'fontWeight': 'bold', 'display': 'block', 'marginBottom': '5px'}),
-                dcc.RadioItems(id='catchment-toggle', options=[
-                    {'label': 'California State', 'value': 'all'},
-                    {'label': 'Stanford Cancer Institute Catchment Area', 'value': 'stanford_catchment'},
-                    {'label': 'HDFCCC Catchment Area', 'value': 'HDFCCC_catchment'},
-                    {'label': 'Sugary Beverage Policy Instated', 'value': 'sugarybeveragepolicy_cities'}
-                ], value='all', labelStyle={'display': 'block', 'marginBottom': '8px'})
-            ]),
-
-            html.Div(style={'marginBottom': '10px', 'paddingTop': '10px', 'borderTop': '1px dashed #ccc'}, children=[
                 html.Label("Performance Mode Toggle:", style={'fontSize': '13px', 'color': '#666', 'display': 'block', 'marginBottom': '5px'}),
                 dcc.Checklist(id='prod-toggle', options=[
-                    {'label': 'Production High-Fidelity Rendering', 'value': 'prod'}
+                    {'label': ' Production High-Fidelity Rendering', 'value': 'prod'}
                 ], value=[], style={'fontSize': '13px'})
+            ]),
+            # Apply Changes Button
+            html.Button('Apply Changes', id='apply-btn', n_clicks=0, style={
+                'width': '100%', 'padding': '12px', 'backgroundColor': '#052049', 'color': 'white', 
+                'border': 'none', 'borderRadius': '5px', 'fontSize': '16px', 'cursor': 'pointer',
+                'fontWeight': 'bold', 'marginTop': '10px'
+            }),
+            
+            # Interactive Status Alert (Hidden on boot)
+            html.Div(id='status-alert-container', style={'display': 'none'}, children=[
+                html.Span("✓ Maps updated successfully.", style={'fontWeight': 'bold', 'fontSize': '14px'}),
+                html.Button("✖", id='close-status-btn', n_clicks=0, style={
+                    'border': 'none', 'background': 'none', 'fontSize': '14px', 
+                    'cursor': 'pointer', 'color': '#155724', 'padding': '0', 'marginLeft': '10px'
+                })
             ])
         ]),
-        html.Div(style={'flex': '3 1 600px'}, children=[
-            dcc.Graph(id='spatial-choropleth-map', style={'height': '680px'}),
+        # --- RIGHT MAIN AREA: MAPS ---
+        # minWidth: 0 prevents the flex container from blowing out past the screen bounds
+        html.Div(style={'flex': '1', 'minWidth': 0}, children=[
+            dcc.Loading(
+                id="loading-maps",
+                type="circle",
+                color="#052049",
+                children=[
+                    html.Div(id='maps-container', style={'display': 'flex', 'gap': '15px', 'width': '100%'}, children=[
+                        
+                        # Map 1
+                        # flex: 1 ensures it shares space equally, minWidth: 0 stops horizontal overflow
+                        html.Div(id='map1-wrapper', style={'flex': '1', 'minWidth': 0}, children=[
+                            dcc.Graph(id='spatial-choropleth-map-1', style={'height': '650px'}) 
+                        ]),
+                        
+                        # Map 2 (Hidden by default)
+                        html.Div(id='map2-wrapper', style={'display': 'none'}, children=[
+                            dcc.Graph(id='spatial-choropleth-map-2', style={'height': '650px'})
+                        ])
+                    ])
+                ]
+            )
         ])
     ]),
+    
+    # --- FOOTER ---
     html.Footer(style={'marginTop': '30px', 'borderTop': '2px solid #ccc', 'paddingTop': '20px'}, children=[
         html.H4("Definitions", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""Adult (18 or older) obesity is defined as a body mass index (BMI) of 30.0 or greater. BMI is calculated using respondent's self-reported weight and height.  
@@ -302,56 +366,40 @@ Adult sugar-sweetened beverage consumption includes individuals who consume soda
 ])
 
 #==============================================================================
-# STREAMLINED CALLBACK ENGINE
+# CORE MAP GENERATION ENGINE
 #==============================================================================
-@app.callback(
-    Output('spatial-choropleth-map', 'figure'),
-    [Input('factor-dropdown', 'value'),
-     Input('year-dropdown', 'value'),
-     Input('geo-toggle', 'value'),
-     Input('catchment-toggle', 'value'),
-     Input('prod-toggle', 'value')]
-)
-def update_interactive_map(selected_factor, selected_year, selected_geo, selected_catchment, prod_selection):
-    # Determine mode: default (empty list) uses optimized debug shapes, checking uses high-fidelity
+def generate_choropleth(selected_factor, selected_year, selected_geo, selected_catchment, prod_selection):
+    """Abstracted core logic for generating a single map visual based on passed parameters"""
     render_mode = "prod" if "prod" in prod_selection else "debug"
     
     geo_year_key = 2020 if selected_year == 2022 else 2010
     geo_join_col = "GEOID" if geo_year_key == 2020 else "GEOID10"
 
-    # Fetch geometry mapping cache instantaneously 
     geo_json_obj, base_shapes = spatial_pipeline[selected_geo][geo_year_key][render_mode]
-
-    # Pull structural survey data array
     survey_df = data_store[selected_geo][selected_year]
     right_key = "county_fips" if selected_geo == "county" else "censustract_fips"
 
-    # Lightweight join
     datasource = pd.merge(base_shapes[[geo_join_col]], survey_df, left_on=geo_join_col, right_on=right_key, how="left")
 
     col_base = f"{selected_factor}_absolute"
     if selected_factor == "adultobesity":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Adult Obesity Distribution"
+        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Adult Obesity"
     elif selected_factor == "teenoverweightobese":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Teen Overweight/Obese Distribution"
+        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Teen Overweight/Obese"
     elif selected_factor == "childoverweight":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Child Overweight Distribution"
+        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Child Overweight"
     elif selected_factor == "adultfoodinsecurity":
-        base_colors, cat_order, metric_label = foodinsecurity_colormap, obesogenicfactor_order, "Adult Food Insecurity Distribution"
+        base_colors, cat_order, metric_label = foodinsecurity_colormap, obesogenicfactor_order, "Adult Food Insecurity"
     elif selected_factor == "adultsugarybev":
-        base_colors, cat_order, metric_label = sugarybeverage_colormap, obesogenicfactor_order, "Adult Sugary Beverage Consumption Distribution"
+        base_colors, cat_order, metric_label = sugarybeverage_colormap, obesogenicfactor_order, "Adult Sugary Beverage"
 
     year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
     geo_display_strings = {"county": "County", "censustract": "Census Tract"}
     
-    selected_year_str = year_display_strings.get(selected_year, str(selected_year))
-    selected_geo_str = geo_display_strings.get(selected_geo, "Geographic View")
-    
-    # Combine everything using a line break and a smaller, muted sub-font styling
     legend_combined_title = (
         f"<b>{metric_label}</b><br>"
-        f"<span style='font-size: 11px; font-weight: normal; color: #555555; font-family: \"Times New Roman\", serif; font-style: normal;'>"
-        f"{selected_geo_str}, {selected_year_str}</span>"
+        f"<span style='font-size: 11px; font-weight: normal; color: #555555;'>"
+        f"{geo_display_strings.get(selected_geo, '')}, {year_display_strings.get(selected_year, '')}</span>"
     )
 
     target_fips = {
@@ -362,13 +410,11 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
 
     color_column_to_use = 'styled_color_group'
     
-    # Fast vectorized calculation instead of slow iterative dataframe apply functions
     if selected_catchment == 'all':
         datasource[color_column_to_use] = datasource[col_base].fillna("Data Missing")
         final_categories = cat_order + ["Data Missing"]
         active_color_discrete_map = base_colors.copy()
     else:
-        # Optimization: Map catchment membership vectorially
         fips_prefix = datasource[geo_join_col].str.slice(0, 5)
         in_catchment = fips_prefix.isin(target_fips)
         
@@ -385,15 +431,12 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         active_color_discrete_map["Data Missing - outside catchment area"] = hex_to_rgba(base_colors["Data Missing"], alpha=0.15)
 
     datasource['display_pct'] = (datasource[selected_factor] * 100).round(1)
-
-    # Inject legend tracking placeholders
     ghost_df = pd.DataFrame([{geo_join_col: f"ghost_{c}", color_column_to_use: c, "display_pct": np.nan} for c in final_categories])
     datasource = pd.concat([datasource, ghost_df], ignore_index=True)
 
     cat_type = pd.CategoricalDtype(categories=final_categories, ordered=True)
     datasource[color_column_to_use] = datasource[color_column_to_use].astype(cat_type)
 
-    # Instant layout spatial framing estimation
     minx, miny, maxx, maxy = base_shapes.total_bounds
     
     fig = px.choropleth_mapbox(
@@ -404,10 +447,8 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         opacity=0.85, custom_data=["county" if selected_geo == "county" else "censustract", color_column_to_use, "display_pct"]
     )
 
-    # Remove the extra legend entries for geographies outside of the catchment areas. 
     fig.for_each_trace(
-        lambda trace: trace.update(showlegend=False) 
-        if "outside catchment area" in trace.name else None
+        lambda trace: trace.update(showlegend=False) if "outside catchment area" in trace.name else None
     )
 
     mapbox_layers_list = []
@@ -429,9 +470,81 @@ def update_interactive_map(selected_factor, selected_year, selected_geo, selecte
         margin={"r": 0, "t": 10, "l": 0, "b": 0},
         font=dict(family="Times New Roman", size=14),
         legend=dict(title_text=legend_combined_title, y=0.04, x=0.02, bgcolor="rgba(255, 255, 255, 0.9)"),
-        mapbox_layers=mapbox_layers_list
+        mapbox_layers=mapbox_layers_list,
+        uirevision='constant' # Prevents zoom/pan from resetting on update
     )
     return fig
+
+#==============================================================================
+# STREAMLINED CALLBACK ENGINE
+#==============================================================================
+# UI Toggle Callback (Shows/Hides Map 2)
+@app.callback(
+    [Output('panel-2', 'style'), Output('map2-wrapper', 'style')],
+    [Input('dual-map-toggle', 'value')]
+)
+def toggle_dual_mode(toggle_val):
+    if 'dual' in toggle_val:
+        # Inject flex and minWidth constraints when making Map 2 visible
+        return {'display': 'block', 'marginBottom': '20px'}, {'flex': '1', 'minWidth': 0, 'display': 'block'}
+    return {'display': 'none'}, {'display': 'none'}
+
+# Main Generation Callback (Triggers on boot and "Apply Changes" click)
+@app.callback(
+    [Output('spatial-choropleth-map-1', 'figure'),
+     Output('spatial-choropleth-map-2', 'figure'),
+     Output('status-alert-container', 'style')],
+    [Input('apply-btn', 'n_clicks')],
+    [State('factor-dropdown-1', 'value'), State('year-dropdown-1', 'value'), 
+     State('geo-toggle-1', 'value'), State('catchment-toggle-1', 'value'),
+     State('factor-dropdown-2', 'value'), State('year-dropdown-2', 'value'), 
+     State('geo-toggle-2', 'value'), State('catchment-toggle-2', 'value'),
+     State('prod-toggle', 'value'), State('dual-map-toggle', 'value')]
+)
+def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
+    # Initialize Map 1
+    fig1 = generate_choropleth(f1, y1, g1, c1, prod_mode)
+    
+    # Initialize Map 2 (if dual mode is active)
+    if 'dual' in dual_mode:
+        fig2 = generate_choropleth(f2, y2, g2, c2, prod_mode)
+    else:
+        fig2 = no_update
+        
+    # Manage Status Indicator Visibility
+    if n_clicks == 0:
+        alert_style = {'display': 'none'}
+    else:
+        alert_style = {
+            'display': 'flex', 'marginTop': '15px', 'padding': '10px 15px', 
+            'backgroundColor': '#d4edda', 'color': '#155724', 'borderRadius': '5px', 
+            'justifyContent': 'space-between', 'alignItems': 'center', 
+            'border': '1px solid #c3e6cb', 'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
+        }
+        
+    return fig1, fig2, alert_style
+
+# Synchronize bounds from Map 1 to Map 2
+@app.callback(
+    Output('spatial-choropleth-map-2', 'figure', allow_duplicate=True),
+    [Input('spatial-choropleth-map-1', 'relayoutData')],
+    [State('dual-map-toggle', 'value')],
+    prevent_initial_call=True
+)
+def sync_maps(relayout_data, dual_mode):
+    # Only synchronize if dual mode is active and pan/zoom events occurred
+    if 'dual' not in dual_mode or not relayout_data:
+        return no_update
+        
+    if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data:
+        patched_fig = Patch()
+        if 'mapbox.zoom' in relayout_data:
+            patched_fig['layout']['mapbox']['zoom'] = relayout_data['mapbox.zoom']
+        if 'mapbox.center' in relayout_data:
+            patched_fig['layout']['mapbox']['center'] = relayout_data['mapbox.center']
+        return patched_fig
+        
+    return no_update
 
 if __name__ == '__main__':
     if workstation == "local":

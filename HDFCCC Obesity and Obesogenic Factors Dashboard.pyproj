@@ -11,7 +11,8 @@
     <OutputPath>.</OutputPath>
     <Name>HDFCCC Obesity and Obesogenic Factors Dashboard</Name>
     <RootNamespace>HDFCCC Obesity and Obesogenic Factors Dashboard</RootNamespace>
-    <InterpreterId>Global|VisualStudio|HDFCCC Obesity and Obesogenic Factors Dashboard</InterpreterId>
+    <InterpreterId>Global|PythonCore|3.13</InterpreterId>
+    <IsWindowsApplication>False</IsWindowsApplication>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,6 +26,7 @@
     <Compile Include="HDFCCC_Obesity_and_Obesogenic_Factors_Dashboard.py" />
   </ItemGroup>
   <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.13" />
     <InterpreterReference Include="Global|VisualStudio|HDFCCC Obesity and Obesogenic Factors Dashboard" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
