@@ -243,8 +243,8 @@ geo_opts = [
 catchment_opts = [
     {'label': 'California State', 'value': 'all'},
     {'label': 'Stanford Cancer Institute Catchment Area', 'value': 'stanford_catchment'},
-    {'label': 'HDFCCC Catchment Area', 'value': 'HDFCCC_catchment'},
-    {'label': 'Sugary Beverage Policy Instated', 'value': 'sugarybeveragepolicy_cities'}
+    {'label': 'UCSF/HDFCCC Catchment Area', 'value': 'HDFCCC_catchment'},
+    {'label': 'Sugary Beverage Tax Policy Instated', 'value': 'sugarybeveragepolicy_cities'}
 ]
 
 def create_control_panel(map_id_prefix, title, is_secondary=False):
@@ -264,6 +264,14 @@ def create_control_panel(map_id_prefix, title, is_secondary=False):
         html.Label("Catchment Overlay:", style={'fontWeight': 'bold', 'display': 'block', 'fontSize': '14px'}),
         dcc.RadioItems(id=f'catchment-toggle-{map_id_prefix}', options=catchment_opts, value='all', labelStyle={'display': 'block', 'marginBottom': '4px'}),
     ])
+
+def create_sync_button( is_secondary=False ):
+    return html.Div( style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }, children=[
+        html.Button('Synchronize Maps', id='sync-btn', n_clicks=0, style={
+        'display': 'none' if is_secondary else 'block',
+        'width': '60%', "height": '60%', 'padding': '12px', 'backgroundColor': '#052049', 
+        'color': 'white', 'border': 'none', 'borderRadius': '3px', 'fontSize': '14px', 
+        'cursor': 'pointer', 'fontWeight': 'bold', 'marginTop': '5px' }) ] )
 
 #==============================================================================
 # DASH LAYOUT
@@ -295,24 +303,28 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
                     style={'fontWeight': 'bold', 'color': '#052049'}
                 )
             ]),
-            
+            # Apply Changes Button
+            html.Button('Apply Changes', id='apply-btn', n_clicks=0, style={
+                'width': '100%', 'padding': '12px', 'backgroundColor': '#052049', 'color': 'white', 
+                'border': 'none', 'borderRadius': '5px', 'fontSize': '16px', 'cursor': 'pointer',
+                'fontWeight': 'bold', 'marginTop': '10px', 'marginBottom': '5px'
+            }),
+            # Synchronize Maps Button
+            # Only shown if side-by-side maps are enabled. When clicked, it will synchronize both maps to changes made to the primary
+            # map boundaries.
+            create_sync_button(is_secondary=True),            
             # Map 2 Controls (Hidden by default)
             create_control_panel('2', 'Map 2 Options', is_secondary=True),
             
             # Global rendering toggle
             html.Div(style={'marginBottom': '20px'}, children=[
-                html.Label("Performance Mode Toggle:", style={'fontSize': '13px', 'color': '#666', 'display': 'block', 'marginBottom': '5px'}),
+                html.Label("Performance Mode:", style={'fontSize': '13px', 'color': '#666', 'display': 'block', 'marginTop': '5px', 'marginBottom': '5px'}),
                 dcc.Checklist(id='prod-toggle', options=[
                     {'label': ' Production High-Fidelity Rendering', 'value': 'prod'}
                 ], value=[], style={'fontSize': '13px'})
             ]),
-            # Apply Changes Button
-            html.Button('Apply Changes', id='apply-btn', n_clicks=0, style={
-                'width': '100%', 'padding': '12px', 'backgroundColor': '#052049', 'color': 'white', 
-                'border': 'none', 'borderRadius': '5px', 'fontSize': '16px', 'cursor': 'pointer',
-                'fontWeight': 'bold', 'marginTop': '10px'
-            }),
-            
+
+  
             # Interactive Status Alert (Hidden on boot)
             html.Div(id='status-alert-container', style={'display': 'none'}, children=[
                 html.Span("✓ Maps updated successfully.", style={'fontWeight': 'bold', 'fontSize': '14px'}),
@@ -353,15 +365,15 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
         html.H4("Definitions", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""Adult (18 or older) obesity is defined as a body mass index (BMI) of 30.0 or greater. BMI is calculated using respondent's self-reported weight and height.  
 Teen respondents (12-17) are classified as overweight/obese if they rank higher than the 85th percentile in the CDC 2010 recommendations on assigning BMI.  
-Children are classified as overweight for their age, and is constructed using sex, age (in months), and weight (does not factor in height).  
-Adult food insecurity includes individuals who are low-income and food insecure.  
-Adult sugar-sweetened beverage consumption includes individuals who consume soda or sweet beverages at least once a day.      
+Proportion of children overweight for their age is constructed using sex, age (in months), and weight. It does not take into account height.  
+Adult food insecurity is defined as proportion of adults who are low-income and food insecure.  
+Adult sugar-sweetened beverage consumption is defined as proportion of adults who consume soda or sweet beverages at least once a day.      
         """),
         html.H4("Disclaimers", style={'color': '#444', 'fontWeight': 'normal'}),
         dcc.Markdown("""* California Health Interview Survey obscures estimates when populations are less than 1,000 individuals or when estimates are statistically unstable.
 * 2015-2016, 2017-2018, 2019-2020 data are plotted on 2010 Decennial Census geographies; 2021-2022 is plotted on 2020 Decennial Census geographies."""),
         html.H4("Additional Resources", style={'color': '#444', 'fontWeight': 'normal'}),
-        dcc.Markdown("[Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | [National Cancer Institute (NCI)](https://www.cancer.gov) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
+        dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | [National Cancer Institute (NCI)](https://www.cancer.gov) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
     ])
 ])
 
@@ -391,7 +403,7 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
     elif selected_factor == "adultfoodinsecurity":
         base_colors, cat_order, metric_label = foodinsecurity_colormap, obesogenicfactor_order, "Adult Food Insecurity"
     elif selected_factor == "adultsugarybev":
-        base_colors, cat_order, metric_label = sugarybeverage_colormap, obesogenicfactor_order, "Adult Sugary Beverage"
+        base_colors, cat_order, metric_label = sugarybeverage_colormap, obesogenicfactor_order, "Adult Sugary Beverage Consumption"
 
     year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
     geo_display_strings = {"county": "County", "censustract": "Census Tract"}
@@ -480,14 +492,19 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
 #==============================================================================
 # UI Toggle Callback (Shows/Hides Map 2)
 @app.callback(
-    [Output('panel-2', 'style'), Output('map2-wrapper', 'style')],
+    [Output('panel-2', 'style'), Output('map2-wrapper', 'style'), Output('sync-btn', 'style')],
     [Input('dual-map-toggle', 'value')]
 )
 def toggle_dual_mode(toggle_val):
     if 'dual' in toggle_val:
         # Inject flex and minWidth constraints when making Map 2 visible
-        return {'display': 'block', 'marginBottom': '20px'}, {'flex': '1', 'minWidth': 0, 'display': 'block'}
-    return {'display': 'none'}, {'display': 'none'}
+        return ( {'display': 'block', 'marginBottom': '20px'},
+                 {'flex': '1', 'minWidth': 0, 'display': 'block'}, 
+                 {'display': 'block', 'width': '60%', 'height': '60%', 'padding': '12px', 
+                  'backgroundColor': '#052049', 'color': 'white', 'border': 'none', 
+                  'borderRadius': '5px', 'fontSize': '14px', 'cursor': 'pointer', 
+                  'fontWeight': 'bold', 'marginTop': '5px'} )
+    return {'display': 'none'}, {'display': 'none'}, {'display': 'none'}
 
 # Main Generation Callback (Triggers on boot and "Apply Changes" click)
 @app.callback(
@@ -527,16 +544,21 @@ def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
 # Synchronize bounds from Map 1 to Map 2
 @app.callback(
     Output('spatial-choropleth-map-2', 'figure', allow_duplicate=True),
-    [Input('spatial-choropleth-map-1', 'relayoutData')],
+    [Input('spatial-choropleth-map-1', 'relayoutData'),
+     Input('sync-btn', 'n_clicks')],
     [State('dual-map-toggle', 'value')],
     prevent_initial_call=True
 )
-def sync_maps(relayout_data, dual_mode):
+def sync_maps(relayout_data, n_clicks, dual_mode):
     # Only synchronize if dual mode is active and pan/zoom events occurred
-    if 'dual' not in dual_mode or not relayout_data:
+    if 'dual' not in dual_mode:
         return no_update
-        
-    if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data:
+    # If user has not panned or zoomed Map 1, relayout_data is None.
+    if not relayout_data:
+        return no_update
+#if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data or n_clicks > 0:
+    
+    if n_clicks > 0:
         patched_fig = Patch()
         if 'mapbox.zoom' in relayout_data:
             patched_fig['layout']['mapbox']['zoom'] = relayout_data['mapbox.zoom']
