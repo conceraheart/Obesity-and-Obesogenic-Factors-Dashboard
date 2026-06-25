@@ -57,9 +57,8 @@ elif workstation == "remote":
     county_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_county_2020.shp")
     censustract_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2010.shp")
     censustract_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2020.shp")
-    obesogenicfactors_filepath = "M:/DREAM Lab/Obesity Supplement/Source Data/"
-    checkpoint_outputdatapath_counties = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260618.xlsx"
-    checkpoint_outputdatapath_censustracts = "M:/DREAM Lab/Obesity Supplement/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260618.xlsx"
+    obesogenicfactors_filepath = "M:/DREAM Lab/Obesity Supplement/Output Data/"
+
 
 # Project coordinates to metric Web Mercator for accurate, uniform distance calculation
 county_projected_2010 = county_2010.to_crs(epsg=3857)
@@ -76,75 +75,98 @@ hdfccccatchmentarea_fips = ["06001", "06007", "06011", "06013", "06019",
                             "06095", "06097", "06099", "06101", "06113"] 
 sugarybeverage_fips = ["06001", "06075", "06087"]
 
-# Generic data loader function
-def load_and_clean_data(file_name, var_string, id_col, target_len):
-    file_path = f"{obesogenicfactors_filepath}{file_name}"
-    sourcedata = pd.read_excel(file_path, sheet_name=None)
-    df = pd.concat(list(sourcedata.values()), ignore_index=True)
+#==============================================================================
+# GLOBAL DASHBOARD CONFIGURATION
+#==============================================================================
+obesity_colormap = {"0 to <10%": "#FFFFE0", "10 to <20%": "#FAD390", "20 to <30%": "#E59866", "30 to <40%": "#BA4A00", "40% or greater": "#6E2C00", "Data Missing": "#D3D3D3"}
+foodinsecurity_colormap = {"0 to <5%": "#66BB6A", "5 to <10%": "#A5D6A7", "10 to <15%": "#E8F5E9", "15 to <20%": "#FFF59D", "20% or greater": "#FDD835", "Data Missing": "#D3D3D3"}    
+sugarybeverage_colormap = {"0 to <5%": "#F5EEF8", "5 to <10%": "#D7BDE2", "10 to <15%": "#AF7AC5", "15 to <20%": "#8E44AD", "20% or greater": "#4A235A", "Data Missing": "#D3D3D3"}
+
+obesity_order = ["0 to <10%", "10 to <20%", "20 to <30%", "30 to <40%", "40% or greater"]
+obesogenicfactor_order = ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater"]
+
+# Consolidate factor configurations to remove if/elif logic from the renderer
+# Standardized Option Banks
+chis_years = [
+    {'label': '2015-2016', 'value': 2016}, {'label': '2017-2018', 'value': 2018},
+    {'label': '2019-2020', 'value': 2020}, {'label': '2021-2022', 'value': 2022}
+]
+index_years = [
+    {'label': '2020', 'value': 2020 }
+]
+standard_geos = [
+    {'label': 'County', 'value': 'county'}, {'label': 'Census Tract', 'value': 'censustract'}
+]
+
+# Consolidate factor configurations, including allowed contexts
+FACTOR_CONFIG = {
+    "adultobesity": {
+        "colors": obesity_colormap, "order": obesity_order, "label": "Adult Obesity",
+        "allowed_years": chis_years, "allowed_geos": standard_geos
+    },
+    "teenoverweightobese": {
+        "colors": obesity_colormap, "order": obesity_order, "label": "Teen Overweight/Obese",
+        "allowed_years": chis_years, "allowed_geos": standard_geos
+    },
+    "childoverweight": {
+        "colors": obesity_colormap, "order": obesity_order, "label": "Child Overweight",
+        "allowed_years": chis_years, "allowed_geos": standard_geos
+    },
+    "adultfoodinsecurity": {
+        "colors": foodinsecurity_colormap, "order": obesogenicfactor_order, "label": "Adult Food Insecurity",
+        "allowed_years": chis_years, "allowed_geos": standard_geos
+    },
+    "adultsugarybev": {
+        "colors": sugarybeverage_colormap, "order": obesogenicfactor_order, "label": "Adult Sugary Beverage",
+        "allowed_years": standard_years, "allowed_geos": standard_geos
+    },
     
-    if id_col in df.columns:
-        df[id_col] = df[id_col].astype(str).str.strip().str.replace(r'\.0$', '', regex=True).str.zfill(target_len)
-        
-    year_map = {"2015-2016": 2016, "2017-2018": 2018, "2019-2020": 2020, "2021-2022": 2022, "2023-2024": 2024, "2025-2026": 2026}
-    df['year'] = df['yr'].apply(lambda x: year_map.get(x, np.nan))
 
-    def categorize(val, thresholds, labels):
-        if pd.isna(val) or val < 0: return "Data Missing"
-        for t, l in zip(thresholds, labels):
-            if val < t: return l
-        return labels[-1]
+    # This factor only has 2010/2020 data, and is strictly locked to Census Tracts.
+    "new_decade_factor": {
+        "colors": obesity_colormap, "order": obesity_order, "label": "Historical Decadal Data",
+        "allowed_years": [
+            {'label': '2010 Decennial', 'value': 2010}, 
+            {'label': '2020 Decennial', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True}, # This grays out the option!
+            {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    }
+}
 
-    if var_string in ["adultobesity", "childoverweight", "teenoverweightobese"]:
-        df[f"{var_string}_absolute"] = df["estimate"].apply(lambda x: categorize(x, [0.10, 0.20, 0.30, 0.40], ["0 to <10%", "10 to <20%", "20 to <30%", "30 to <40%", "40% or greater"]))
-    elif var_string in ["adultfoodinsecurity", "adultsugarybev"]:
-        df[f"{var_string}_absolute"] = df["estimate"].apply(lambda x: categorize(x, [0.05, 0.10, 0.15, 0.20], ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater"]))
+def hex_to_rgba(hex_val, alpha=1.0):
+    hex_clean = hex_val.lstrip('#')
+    r, g, b = int(hex_clean[0:2], 16), int(hex_clean[2:4], 16), int(hex_clean[4:6], 16)
+    return f"rgba({r}, {g}, {b}, {alpha})"
 
-    if target_len == 5:
-        out_col = "county_fips"
-        out_name = "county"
-    elif target_len == 11:
-        out_col = "censustract_fips"
-        out_name = "censustract"
+#==============================================================================
+# READ IN MASTER WIDE-DATA 
+#==============================================================================
+def load_master_data(filename, geotype, fips_len):
+    """Loads a master wide-format dataset and standardizes the FIPS column."""
+    path = os.path.join(obesogenicfactors_filepath, filename)
+    df = pd.read_excel(path)
+    
+    fips_col = 'countyfips' if geotype == 'county' else 'censustractfips'
+    
+    # Ensure FIPS is parsed as a string, stripped of decimals, and zero-padded
+    df[fips_col] = df[fips_col].astype(str).str.strip().str.replace(r'\.0$', '', regex=True).str.zfill(fips_len)
+    return df
 
-    return df.rename(columns={'estimate': var_string, 'geoid': out_col, 'name': out_name, "suppressed": f"{var_string}_suppressed", "yr": "year_string"}).drop(columns=["CI_LB95", "CI_UB95", "prevalence", "variable", "geotype", "population"], errors='ignore')
+print("Loading master datasets...", flush=True)
 
-# Read and process matrices
-print("Loading workbook assets...", flush=True)
-c_obesity = load_and_clean_data("adultobesity_counties.xlsx", "adultobesity", "geoid", 5)
-c_child = load_and_clean_data("childoverweight_counties.xlsx", "childoverweight", "geoid", 5).drop(columns=["county", "year_string"])
-c_teen = load_and_clean_data("teenoverweightobese_counties.xlsx", "teenoverweightobese", "geoid", 5).drop(columns=["county", "year_string"])
-c_food = load_and_clean_data("adultfoodinsecurity_counties.xlsx", "adultfoodinsecurity", "geoid", 5).drop(columns=["county", "year_string"])
-c_bev = load_and_clean_data("adultsugarbev_counties.xlsx", "adultsugarybev", "geoid", 5).drop(columns=["county", "year_string"])
-
-obesogenicfactors_counties = c_obesity.merge(c_child, on=["county_fips", "year"], how="outer")\
-                                      .merge(c_teen, on=["county_fips", "year"], how="outer")\
-                                      .merge(c_food, on=["county_fips", "year"], how="outer")\
-                                      .merge(c_bev, on=["county_fips", "year"], how="outer")
-
-t_obesity = load_and_clean_data("adultobesity_censustracts.xlsx", "adultobesity", "geoid", 11)
-t_child = load_and_clean_data("childoverweight_censustracts.xlsx", "childoverweight", "geoid", 11).drop(columns=["censustract", "year_string"])
-t_teen = load_and_clean_data("teenoverweightobese_censustracts.xlsx", "teenoverweightobese", "geoid", 11).drop(columns=["censustract", "year_string"])
-t_food = load_and_clean_data("adultfoodinsecurity_censustracts.xlsx", "adultfoodinsecurity", "geoid", 11).drop(columns=["censustract", "year_string"])
-t_bev = load_and_clean_data("adultsugarbev_censustracts.xlsx", "adultsugarybev", "geoid", 11).drop(columns=["censustract", "year_string"])
-
-obesogenicfactors_censustracts = t_obesity.merge(t_child, on=["censustract_fips", "year"], how="outer")\
-                                          .merge(t_teen, on=["censustract_fips", "year"], how="outer")\
-                                          .merge(t_food, on=["censustract_fips", "year"], how="outer")\
-                                          .merge(t_bev, on=["censustract_fips", "year"], how="outer")
-
-def compute_quintiles(df, id_col):
-    out_df = df.copy()
-    for col in ["adultobesity", "teenoverweightobese", "childoverweight", "adultfoodinsecurity", "adultsugarybev"]:
-        if col in out_df.columns and not out_df[col].dropna().empty:
-            out_df[f"{col}_quintile"] = pd.qcut(out_df[col], 5, labels=["Q1", "Q2", "Q3", "Q4", "Q5"], duplicates='drop')
-        else:
-            out_df[f"{col}_quintile"] = np.nan
-    return out_df
-
-# Group into clean dictionaries to eliminate conditional evaluations inside callback loops
-data_store = {
-    "county": {y: compute_quintiles(obesogenicfactors_counties[obesogenicfactors_counties['year'] == y], "county_fips") for y in [2016, 2018, 2020, 2022]},
-    "censustract": {y: compute_quintiles(obesogenicfactors_censustracts[obesogenicfactors_censustracts['year'] == y], "censustract_fips") for y in [2016, 2018, 2020, 2022]}
+# Store the raw master datasets mapped to their respective geographic vintage
+master_data_store = {
+    "county": {
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2010_20260624.xlsx", "county", 5),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2020_20260624.xlsx", "county", 5)
+    },
+    "censustract": {
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2010_20260624.xlsx", "censustract", 11),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2020_20260624.xlsx", "censustract", 11)
+    }
 }
 
 #==============================================================================
@@ -373,64 +395,65 @@ Adult sugar-sweetened beverage consumption is defined as proportion of adults wh
         dcc.Markdown("""* California Health Interview Survey obscures estimates when populations are less than 1,000 individuals or when estimates are statistically unstable.
 * 2015-2016, 2017-2018, 2019-2020 data are plotted on 2010 Decennial Census geographies; 2021-2022 is plotted on 2020 Decennial Census geographies."""),
         html.H4("Additional Resources", style={'color': '#444', 'fontWeight': 'normal'}),
-        dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | [National Cancer Institute (NCI)](https://www.cancer.gov) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
+        dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
     ])
 ])
 
 #==============================================================================
 # CORE MAP GENERATION ENGINE
 #==============================================================================
+#==============================================================================
+# CORE MAP GENERATION ENGINE
+#==============================================================================
 def generate_choropleth(selected_factor, selected_year, selected_geo, selected_catchment, prod_selection):
-    """Abstracted core logic for generating a single map visual based on passed parameters"""
+    """Abstracted core logic for rendering maps using wide-format master data."""
     render_mode = "prod" if "prod" in prod_selection else "debug"
     
+    # 1. Determine Geography Vintage & Identifiers
     geo_year_key = 2020 if selected_year == 2022 else 2010
     geo_join_col = "GEOID" if geo_year_key == 2020 else "GEOID10"
+    data_fips_col = 'countyfips' if selected_geo == 'county' else 'censustractfips'
+    location_name_col = 'countyname' if selected_geo == 'county' else 'censustractname'
 
+    # 2. Fetch Base Assets
     geo_json_obj, base_shapes = spatial_pipeline[selected_geo][geo_year_key][render_mode]
-    survey_df = data_store[selected_geo][selected_year]
-    right_key = "county_fips" if selected_geo == "county" else "censustract_fips"
+    master_df = master_data_store[selected_geo][geo_year_key]
 
-    datasource = pd.merge(base_shapes[[geo_join_col]], survey_df, left_on=geo_join_col, right_on=right_key, how="left")
+    # 3. Join Spatial Shapes to Master Data
+    datasource = pd.merge(base_shapes[[geo_join_col]], master_df, left_on=geo_join_col, right_on=data_fips_col, how="left")
 
-    col_base = f"{selected_factor}_absolute"
-    if selected_factor == "adultobesity":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Adult Obesity"
-    elif selected_factor == "teenoverweightobese":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Teen Overweight/Obese"
-    elif selected_factor == "childoverweight":
-        base_colors, cat_order, metric_label = obesity_colormap, obesity_order, "Child Overweight"
-    elif selected_factor == "adultfoodinsecurity":
-        base_colors, cat_order, metric_label = foodinsecurity_colormap, obesogenicfactor_order, "Adult Food Insecurity"
-    elif selected_factor == "adultsugarybev":
-        base_colors, cat_order, metric_label = sugarybeverage_colormap, obesogenicfactor_order, "Adult Sugary Beverage Consumption"
+    # 4. Target Dynamic Columns based on UI selections
+    val_col = f"{selected_factor}_{selected_year}"
+    cat_col = f"{selected_factor}_category_{selected_year}"
 
-    year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
-    geo_display_strings = {"county": "County", "censustract": "Census Tract"}
+    # NOTE: If your master Excel data stores percentages as decimals (0.32), keep the * 100.
+    # If your master Excel data is already formatted as whole numbers (32.4), remove the * 100.
+    datasource['display_pct'] = (datasource[val_col] * 100).round(1) 
+
+    # 5. Fetch Factor Configuration
+    config = FACTOR_CONFIG[selected_factor]
+    base_colors = config["colors"]
+    cat_order = config["order"]
+    metric_label = config["label"]
     
-    legend_combined_title = (
-        f"<b>{metric_label}</b><br>"
-        f"<span style='font-size: 11px; font-weight: normal; color: #555555;'>"
-        f"{geo_display_strings.get(selected_geo, '')}, {year_display_strings.get(selected_year, '')}</span>"
-    )
-
+    color_column_to_use = 'styled_color_group'
+    
+    # 6. Apply Catchment Area Transparency Logic
     target_fips = {
         'stanford_catchment': stanfordcatchmentarea_fips,
         'HDFCCC_catchment': hdfccccatchmentarea_fips,
         'sugarybeveragepolicy_cities': sugarybeverage_fips
     }.get(selected_catchment, [])
-
-    color_column_to_use = 'styled_color_group'
     
     if selected_catchment == 'all':
-        datasource[color_column_to_use] = datasource[col_base].fillna("Data Missing")
+        datasource[color_column_to_use] = datasource[cat_col].fillna("Data Missing")
         final_categories = cat_order + ["Data Missing"]
         active_color_discrete_map = base_colors.copy()
     else:
         fips_prefix = datasource[geo_join_col].str.slice(0, 5)
         in_catchment = fips_prefix.isin(target_fips)
         
-        base_vals = datasource[col_base].fillna("Data Missing")
+        base_vals = datasource[cat_col].fillna("Data Missing")
         datasource[color_column_to_use] = np.where(in_catchment, base_vals, base_vals + " - outside catchment area")
         
         active_color_discrete_map = base_colors.copy()
@@ -442,21 +465,30 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         final_categories.extend(["Data Missing", "Data Missing - outside catchment area"])
         active_color_discrete_map["Data Missing - outside catchment area"] = hex_to_rgba(base_colors["Data Missing"], alpha=0.15)
 
-    datasource['display_pct'] = (datasource[selected_factor] * 100).round(1)
+    # 7. Inject "Ghost" rows to force Plotly to render all legend items even if they don't exist in the current map view
     ghost_df = pd.DataFrame([{geo_join_col: f"ghost_{c}", color_column_to_use: c, "display_pct": np.nan} for c in final_categories])
     datasource = pd.concat([datasource, ghost_df], ignore_index=True)
 
     cat_type = pd.CategoricalDtype(categories=final_categories, ordered=True)
     datasource[color_column_to_use] = datasource[color_column_to_use].astype(cat_type)
 
+    # 8. Render the Map
     minx, miny, maxx, maxy = base_shapes.total_bounds
     
+    year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
+    geo_display_strings = {"county": "County", "censustract": "Census Tract"}
+    legend_combined_title = (
+        f"<b>{metric_label}</b><br>"
+        f"<span style='font-size: 11px; font-weight: normal; color: #555555;'>"
+        f"{geo_display_strings.get(selected_geo, '')}, {year_display_strings.get(selected_year, '')}</span>"
+    )
+
     fig = px.choropleth_mapbox(
         datasource, geojson=geo_json_obj, locations=datasource[geo_join_col],
         featureidkey="properties." + geo_join_col, color=color_column_to_use,
         color_discrete_map=active_color_discrete_map, category_orders={color_column_to_use: final_categories},
         mapbox_style="carto-positron", zoom=5.1, center={"lat": (miny + maxy) / 2, "lon": (minx + maxx) / 2},
-        opacity=0.85, custom_data=["county" if selected_geo == "county" else "censustract", color_column_to_use, "display_pct"]
+        opacity=0.85, custom_data=[location_name_col, color_column_to_use, "display_pct"]
     )
 
     fig.for_each_trace(
@@ -483,7 +515,7 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         font=dict(family="Times New Roman", size=14),
         legend=dict(title_text=legend_combined_title, y=0.04, x=0.02, bgcolor="rgba(255, 255, 255, 0.9)"),
         mapbox_layers=mapbox_layers_list,
-        uirevision='constant' # Prevents zoom/pan from resetting on update
+        uirevision='constant'
     )
     return fig
 
