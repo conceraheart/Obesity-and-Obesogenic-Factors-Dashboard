@@ -81,9 +81,24 @@ sugarybeverage_fips = ["06001", "06075", "06087"]
 obesity_colormap = {"0 to <10%": "#FFFFE0", "10 to <20%": "#FAD390", "20 to <30%": "#E59866", "30 to <40%": "#BA4A00", "40% or greater": "#6E2C00", "Data Missing": "#D3D3D3"}
 foodinsecurity_colormap = {"0 to <5%": "#66BB6A", "5 to <10%": "#A5D6A7", "10 to <15%": "#E8F5E9", "15 to <20%": "#FFF59D", "20% or greater": "#FDD835", "Data Missing": "#D3D3D3"}    
 sugarybeverage_colormap = {"0 to <5%": "#F5EEF8", "5 to <10%": "#D7BDE2", "10 to <15%": "#AF7AC5", "15 to <20%": "#8E44AD", "20% or greater": "#4A235A", "Data Missing": "#D3D3D3"}
+# REI / RFEI uses an inverted foodinsecurity colormap. Consider changing this? Will the color inversion confuse users?
+rei_rfei_colormap = {"0": "#FDD835", "Q1": "#FFF59D", "Q2": "#E8F5E9", "Q3": "#A5D6A7", "Q4": "#66BB6A", "Data Missing": "#D3D3D3"}
+recreationalfacilities_colormap = {"<0.25 per 1,000": "#FFF7C0",       # Pastel Yellow
+    "0.25 to <0.50 per 1,000": "#A6D9D0",      # Light Aqua
+    "0.50 to <0.75 per 1,000": "#57ADD2",     # Sky Blue
+    "0.75 to <1.00 per 1,000": "#2C6EAD",     # Medium/Cobalt Blue
+    "1.00 or greater per 1,000": "#052049", # Navy Blue
+    "Data Missing": "#D3D3D3"    # Standard Gray
+}
+index_colormap = {"Q1": "#FFF7C0", "Q2": "#A6D9D0", "Q3": "#57ADD2", "Q4": "#2C6EAD", "Q5": "#052049", "Data Missing": "#D3D3D3"}
+
 
 obesity_order = ["0 to <10%", "10 to <20%", "20 to <30%", "30 to <40%", "40% or greater"]
 obesogenicfactor_order = ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater"]
+rei_rfei_order = ["0", "Q1", "Q2", "Q3", "Q4"]
+recreationalfacilities_order = ["<0.25 per 1,000", "0.25 to <0.50 per 1,000", "0.50 to <0.75 per 1,000", "0.75 to <1.00 per 1,000", "1.00 or greater per 1,000"]
+index_order = ["Q1", "Q2", "Q3", "Q4", "Q5"]
+
 
 # Consolidate factor configurations to remove if/elif logic from the renderer
 # Standardized Option Banks
@@ -101,41 +116,127 @@ standard_geos = [
 # Consolidate factor configurations, including allowed contexts
 FACTOR_CONFIG = {
     "adultobesity": {
+        "format_type": "percent", 
         "colors": obesity_colormap, "order": obesity_order, "label": "Adult Obesity",
         "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     "teenoverweightobese": {
+        "format_type": "percent",
         "colors": obesity_colormap, "order": obesity_order, "label": "Teen Overweight/Obese",
         "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     "childoverweight": {
+        "format_type": "percent",
         "colors": obesity_colormap, "order": obesity_order, "label": "Child Overweight",
         "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     "adultfoodinsecurity": {
+        "format_type": "percent",
         "colors": foodinsecurity_colormap, "order": obesogenicfactor_order, "label": "Adult Food Insecurity",
         "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     "adultsugarybev": {
+        "format_type": "percent",
         "colors": sugarybeverage_colormap, "order": obesogenicfactor_order, "label": "Adult Sugary Beverage",
-        "allowed_years": standard_years, "allowed_geos": standard_geos
+        "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     
 
-    # This factor only has 2010/2020 data, and is strictly locked to Census Tracts.
-    "new_decade_factor": {
-        "colors": obesity_colormap, "order": obesity_order, "label": "Historical Decadal Data",
+    # These factors only have 2020 data, and is strictly locked to Census Tracts.
+    "rei_3yr": {
+        "format_type": "raw",
+        "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Restaurant Environment Index - 3yr average",
         "allowed_years": [
-            {'label': '2010 Decennial', 'value': 2010}, 
+#            {'label': '2010 Decennial', 'value': 2010}, 
             {'label': '2020 Decennial', 'value': 2020}
         ],
         "allowed_geos": [
-            {'label': 'County', 'value': 'county', 'disabled': True}, # This grays out the option!
+            {'label': 'County', 'value': 'county', 'disabled': True},
             {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    },
+    "rfei_3yr": {
+        "format_type": "raw",
+        "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Retail Food Environment Index - 3yr average",
+        "allowed_years": [
+#            {'label': '2010 Decennial', 'value': 2010}, 
+            {'label': '2020 Decennial', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True},
+            {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    },
+    "recreationalfacilitiespercapita_3yr": {
+        "format_type": "percapita",
+        "colors": recreationalfacilities_colormap, "order": recreationalfacilities_order, "label": "Recreational Facilities per capita - 3yr average",
+        "allowed_years": [
+#            {'label': '2010 Decennial', 'value': 2010}, 
+            {'label': '2020 Decennial', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True},
+            {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    },
+    "nses": {
+        "format_type": "raw",
+        "colors": index_colormap, "order": index_order, "label": "Neighborhood Socioeconomic Status",
+        "allowed_years": [
+#            {'label': '2010 Decennial', 'value': 2010}, 
+            {'label': '2020 Decennial', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True},
+            {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    },
+    "svi": {
+        "format_type": "raw",
+        "colors": index_colormap, "order": index_order, "label": "Social Vulnerability Index",
+        "allowed_years": [
+            {'label': '2020 Decennial', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True},
+            {'label': 'Census Tract', 'value': 'censustract' }
         ]
     }
 }
 
+# Configuration for geography vintages
+# Logic: Map (factor, year) -> required geo_year_key
+GEO_VINTAGE_MAP = {
+    # Default logic 
+    "default_vintage": {
+        "rei_3yr": 2020,
+        "rfei_3yr": 2020,
+        "recreationalfacilitiespercapita_3yr": 2020,
+        "nses": 2020,
+        "svi": 2020
+    },
+    "chis_vintage": {
+        "pre_2020": 2010,
+        "2020_plus": 2020
+    }
+}
+
+def get_geo_vintage(selected_factor, selected_year):
+    """Determines the correct shapefile vintage based on factor and year."""
+    # Check for default / CHIS geographical vintage scheme
+    if selected_factor in GEO_VINTAGE_MAP["default_vintage"]:
+        return GEO_VINTAGE_MAP["default_vintage"][selected_factor]
+
+    defaults = GEO_VINTAGE_MAP["chis_vintage"]
+    return defaults["2020_plus"] if selected_year >= 2022 else defaults["pre_2020"]
+
+# Logic for displaying appropriate legend based on selected factor and year
+#legend_year = {
+#    "default_year": {
+#        "rei_3yr": 2020,
+#        "rfei"}}
+
+# Create rgba codes from hex
 def hex_to_rgba(hex_val, alpha=1.0):
     hex_clean = hex_val.lstrip('#')
     r, g, b = int(hex_clean[0:2], 16), int(hex_clean[2:4], 16), int(hex_clean[4:6], 16)
@@ -230,21 +331,6 @@ def get_catchment_boundary(gdf, fips_list, geo_join_col):
     return None
 
 #==============================================================================
-# COLOR CONFIGURATIONS
-#==============================================================================
-obesity_colormap = {"0 to <10%": "#FFFFE0", "10 to <20%": "#FAD390", "20 to <30%": "#E59866", "30 to <40%": "#BA4A00", "40% or greater": "#6E2C00", "Data Missing": "#D3D3D3"}
-foodinsecurity_colormap = {"0 to <5%": "#66BB6A", "5 to <10%": "#A5D6A7", "10 to <15%": "#E8F5E9", "15 to <20%": "#FFF59D", "20% or greater": "#FDD835", "Data Missing": "#D3D3D3"}    
-sugarybeverage_colormap = {"0 to <5%": "#F5EEF8", "5 to <10%": "#D7BDE2", "10 to <15%": "#AF7AC5", "15 to <20%": "#8E44AD", "20% or greater": "#4A235A", "Data Missing": "#D3D3D3"}
-
-obesity_order = ["0 to <10%", "10 to <20%", "20 to <30%", "30 to <40%", "40% or greater"]
-obesogenicfactor_order = ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater"]
-
-def hex_to_rgba(hex_val, alpha=1.0):
-    hex_clean = hex_val.lstrip('#')
-    r, g, b = int(hex_clean[0:2], 16), int(hex_clean[2:4], 16), int(hex_clean[4:6], 16)
-    return f"rgba({r}, {g}, {b}, {alpha})"
-
-#==============================================================================
 # UI CONTROL BUILDERS
 #==============================================================================
 # Options reused across both maps
@@ -253,7 +339,12 @@ factor_opts = [
     {'label': 'Child Overweight', 'value': 'childoverweight'},
     {'label': 'Teen Overweight/Obese', 'value': 'teenoverweightobese'},
     {'label': 'Adult Food Insecurity', 'value': 'adultfoodinsecurity'},
-    {'label': 'Adult Sugary Beverage Consumption', 'value': 'adultsugarybev'}
+    {'label': 'Adult Sugary Beverage Consumption', 'value': 'adultsugarybev'},
+    {'label': 'Restaurant Environment Index (REI) - 3yr average', 'value': 'rei_3yr'},
+    {'label': 'Retail Food Environment Index (RFEI) - 3yr average', 'value': 'rfei_3yr'},
+    {'label': 'Recreational Facilities per capita - 3yr average', 'value': 'recreationalfacilitiespercapita_3yr'},
+    {'label': 'Neighborhood Socioeconomic Status (nSES)', 'value': 'nses'},
+    {'label': 'Social Vulnerability Index (SVI)', 'value': 'svi'}
 ]
 year_opts = [
     {'label': '2015-2016', 'value': 2016}, {'label': '2017-2018', 'value': 2018},
@@ -402,35 +493,45 @@ Adult sugar-sweetened beverage consumption is defined as proportion of adults wh
 #==============================================================================
 # CORE MAP GENERATION ENGINE
 #==============================================================================
-#==============================================================================
-# CORE MAP GENERATION ENGINE
-#==============================================================================
 def generate_choropleth(selected_factor, selected_year, selected_geo, selected_catchment, prod_selection):
     """Abstracted core logic for rendering maps using wide-format master data."""
     render_mode = "prod" if "prod" in prod_selection else "debug"
     
-    # 1. Determine Geography Vintage & Identifiers
-    geo_year_key = 2020 if selected_year == 2022 else 2010
+    # Determine Geography Vintage & Identifiers
+    geo_year_key = get_geo_vintage ( selected_factor, selected_year )
     geo_join_col = "GEOID" if geo_year_key == 2020 else "GEOID10"
     data_fips_col = 'countyfips' if selected_geo == 'county' else 'censustractfips'
     location_name_col = 'countyname' if selected_geo == 'county' else 'censustractname'
 
-    # 2. Fetch Base Assets
+    # Fetch Base Assets
     geo_json_obj, base_shapes = spatial_pipeline[selected_geo][geo_year_key][render_mode]
     master_df = master_data_store[selected_geo][geo_year_key]
 
-    # 3. Join Spatial Shapes to Master Data
+    # Join Spatial Shapes to Master Data
     datasource = pd.merge(base_shapes[[geo_join_col]], master_df, left_on=geo_join_col, right_on=data_fips_col, how="left")
 
-    # 4. Target Dynamic Columns based on UI selections
+    if datasource[geo_join_col].duplicated().any():
+        print("WARNING: Duplicate FIPS detected in datasource!")
+    # Target Dynamic Columns based on UI selections
     val_col = f"{selected_factor}_{selected_year}"
     cat_col = f"{selected_factor}_category_{selected_year}"
 
-    # NOTE: If your master Excel data stores percentages as decimals (0.32), keep the * 100.
-    # If your master Excel data is already formatted as whole numbers (32.4), remove the * 100.
-    datasource['display_pct'] = (datasource[val_col] * 100).round(1) 
+    # Fetch formatting metadata
+    config = FACTOR_CONFIG[selected_factor]
+    format_type = config.get("format_type", "percent") # Default to percent
+    
+    # Conditional Transformation
+    if format_type == "percent":
+        datasource['display_val'] = (datasource[val_col] * 100).round(1)
+        suffix = "%"
+    if format_type == "percapita":
+        datasource['display_val'] = datasource[val_col].round(2)
+        suffix = " per 1,000"
+    if format_type == "raw":
+        datasource['display_val'] = datasource[val_col].round(2)
+        suffix = ""
 
-    # 5. Fetch Factor Configuration
+    # Fetch Factor Configuration
     config = FACTOR_CONFIG[selected_factor]
     base_colors = config["colors"]
     cat_order = config["order"]
@@ -438,7 +539,7 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
     
     color_column_to_use = 'styled_color_group'
     
-    # 6. Apply Catchment Area Transparency Logic
+    # Apply Catchment Area Transparency Logic
     target_fips = {
         'stanford_catchment': stanfordcatchmentarea_fips,
         'HDFCCC_catchment': hdfccccatchmentarea_fips,
@@ -465,14 +566,14 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         final_categories.extend(["Data Missing", "Data Missing - outside catchment area"])
         active_color_discrete_map["Data Missing - outside catchment area"] = hex_to_rgba(base_colors["Data Missing"], alpha=0.15)
 
-    # 7. Inject "Ghost" rows to force Plotly to render all legend items even if they don't exist in the current map view
-    ghost_df = pd.DataFrame([{geo_join_col: f"ghost_{c}", color_column_to_use: c, "display_pct": np.nan} for c in final_categories])
+    # Inject "Ghost" rows to force Plotly to render all legend items even if they don't exist in the current map view
+    ghost_df = pd.DataFrame([{geo_join_col: f"ghost_{c}", color_column_to_use: c, "display_val": np.nan} for c in final_categories])
     datasource = pd.concat([datasource, ghost_df], ignore_index=True)
 
     cat_type = pd.CategoricalDtype(categories=final_categories, ordered=True)
     datasource[color_column_to_use] = datasource[color_column_to_use].astype(cat_type)
 
-    # 8. Render the Map
+    # Render the Map
     minx, miny, maxx, maxy = base_shapes.total_bounds
     
     year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
@@ -488,7 +589,7 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         featureidkey="properties." + geo_join_col, color=color_column_to_use,
         color_discrete_map=active_color_discrete_map, category_orders={color_column_to_use: final_categories},
         mapbox_style="carto-positron", zoom=5.1, center={"lat": (miny + maxy) / 2, "lon": (minx + maxx) / 2},
-        opacity=0.85, custom_data=[location_name_col, color_column_to_use, "display_pct"]
+        opacity=0.85, custom_data=[location_name_col, color_column_to_use, "display_val"]
     )
 
     fig.for_each_trace(
@@ -507,9 +608,9 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
     fig.update_traces(
         marker_line_width=0.2 if selected_geo == "censustract" else 0.5,
         marker_line_color="#ffffff",
-        hovertemplate="<b>%{customdata[0]}</b><br>Category: %{customdata[1]}<br>Value: %{customdata[2]:.1f}%<extra></extra>"
+        hovertemplate="<b>%{customdata[0]}</b><br>Category: %{customdata[1]}<br>Value: %{customdata[2]}" + suffix + "<extra></extra>",
+        customdata=datasource[[location_name_col, color_column_to_use, 'display_val']]
     )
-
     fig.update_layout(
         margin={"r": 0, "t": 10, "l": 0, "b": 0},
         font=dict(family="Times New Roman", size=14),
@@ -550,6 +651,7 @@ def toggle_dual_mode(toggle_val):
      State('geo-toggle-2', 'value'), State('catchment-toggle-2', 'value'),
      State('prod-toggle', 'value'), State('dual-map-toggle', 'value')]
 )
+
 def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
     # Initialize Map 1
     fig1 = generate_choropleth(f1, y1, g1, c1, prod_mode)
@@ -572,6 +674,42 @@ def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
         }
         
     return fig1, fig2, alert_style
+
+# Context Menu Sync for Map 1
+@app.callback(
+    [Output('year-dropdown-1', 'options'), Output('year-dropdown-1', 'value'),
+     Output('geo-toggle-1', 'options'), Output('geo-toggle-1', 'value')],
+    [Input('factor-dropdown-1', 'value')]
+)
+def sync_context_menu_1(selected_factor):
+    config = FACTOR_CONFIG[selected_factor]
+    avail_years = config["allowed_years"]
+    avail_geos = config["allowed_geos"]
+    
+    # Safely reset to the first available options to prevent mismatched states
+    first_avail_year = avail_years[0]['value']
+    
+    # Find the first geography option that is NOT disabled
+    first_avail_geo = next((g['value'] for g in avail_geos if not g.get('disabled', False)), avail_geos[0]['value'])
+    
+    return avail_years, first_avail_year, avail_geos, first_avail_geo
+
+# Context Menu Sync for Map 2
+@app.callback(
+    [Output('year-dropdown-2', 'options'), Output('year-dropdown-2', 'value'),
+     Output('geo-toggle-2', 'options'), Output('geo-toggle-2', 'value')],
+    [Input('factor-dropdown-2', 'value')]
+)
+def sync_context_menu_2(selected_factor):
+    config = FACTOR_CONFIG[selected_factor]
+    avail_years = config["allowed_years"]
+    avail_geos = config["allowed_geos"]
+    
+    first_avail_year = avail_years[0]['value']
+    first_avail_geo = next((g['value'] for g in avail_geos if not g.get('disabled', False)), avail_geos[0]['value'])
+    
+    return avail_years, first_avail_year, avail_geos, first_avail_geo
+
 
 # Synchronize bounds from Map 1 to Map 2
 @app.callback(
