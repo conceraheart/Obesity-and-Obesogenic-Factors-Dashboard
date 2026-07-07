@@ -13,10 +13,14 @@
 # more opaque. The dashboard also includes additional text descriptions for the data used, disclaimers, 
 # and hyperlinks to additional resources. 
 
-# To do:
+# Changes implemented:
 # - "Apply changes" button to set options before rendering.
 # - Loading bar / "processing" indicator for better user responsiveness.
 # - Button-activated functionality for side-by-side visualizations.
+
+# To do:
+# - Front-load master dataset read-in. Join spatial data and master dataset once and programatically refer
+# to joined dataset for map rendering (instead of joining and rendering on each iteration).
 
 
 
@@ -330,6 +334,37 @@ def get_catchment_boundary(gdf, fips_list, geo_join_col):
         return dissolved.to_crs(original_crs)
     return None
 
+
+#==============================================================================
+# PRE-JOIN ATTRIBUTE DATA (ARCHITECTURAL OPTIMIZATION)
+#==============================================================================
+print("Pre-joining shapefiles and master data...", flush=True)
+mastershapefile = {"county": {}, "censustract": {}}
+
+for geo_type in ["county", "censustract"]:
+    if geo_type == 'county': data_fips_col = 'countyfips'
+    elif geo_type == 'censustract': data_fips_col = 'censustractfips'
+    
+    for vintage in [2010, 2020]:
+        if vintage == 2010: geo_join_col = "GEOID10"
+        elif vintage == 2020: geo_join_col = "GEOID"
+        
+        # Extract the base shape IDs (we can safely use 'prod' since IDs are identical in 'debug')
+        _, base_shapes = spatial_pipeline[geo_type][vintage]["prod"]
+        master_df = master_data_store[geo_type][vintage]
+        
+        # Perform the expensive merge operation once at startup
+        joined_df = pd.merge(
+            base_shapes[[geo_join_col]], 
+            master_df, 
+            left_on=geo_join_col, 
+            right_on=data_fips_col, 
+            how="left"
+        )
+        mastershapefile[geo_type][vintage] = joined_df
+
+print("Pre-join complete.", flush=True)
+
 #==============================================================================
 # UI CONTROL BUILDERS
 #==============================================================================
@@ -505,13 +540,12 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
 
     # Fetch Base Assets
     geo_json_obj, base_shapes = spatial_pipeline[selected_geo][geo_year_key][render_mode]
-    master_df = master_data_store[selected_geo][geo_year_key]
+    
+    # Fetch Pre-joined Data Source
+    # IMPORTANT: Use .copy() so we don't accidentally modify the cached data globally 
+    # when adding ghost rows or dynamic display columns later in this function.
+    datasource = mastershapefile[selected_geo][geo_year_key].copy()
 
-    # Join Spatial Shapes to Master Data
-    datasource = pd.merge(base_shapes[[geo_join_col]], master_df, left_on=geo_join_col, right_on=data_fips_col, how="left")
-
-    if datasource[geo_join_col].duplicated().any():
-        print("WARNING: Duplicate FIPS detected in datasource!")
     # Target Dynamic Columns based on UI selections
     val_col = f"{selected_factor}_{selected_year}"
     cat_col = f"{selected_factor}_category_{selected_year}"
