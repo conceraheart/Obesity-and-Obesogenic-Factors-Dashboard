@@ -57,10 +57,10 @@ if workstation == "local":
     checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260616.xlsx"
     checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260616.xlsx"
 elif workstation == "remote":
-    county_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_county_2010.shp")
-    county_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_county_2020.shp")
-    censustract_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2010.shp")
-    censustract_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/CA_tract_2020.shp")
+    county_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_county2010.shp")
+    county_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_county2020.shp")
+    censustract_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_censustract2010.shp")
+    censustract_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_censustract2020.shp")
     obesogenicfactors_filepath = "M:/DREAM Lab/Obesity Supplement/Output Data/"
 
 
@@ -85,6 +85,17 @@ sugarybeverage_fips = ["06001", "06075", "06087"]
 obesity_colormap = {"0 to <10%": "#FFFFE0", "10 to <20%": "#FAD390", "20 to <30%": "#E59866", "30 to <40%": "#BA4A00", "40% or greater": "#6E2C00", "Data Missing": "#D3D3D3"}
 foodinsecurity_colormap = {"0 to <5%": "#66BB6A", "5 to <10%": "#A5D6A7", "10 to <15%": "#E8F5E9", "15 to <20%": "#FFF59D", "20% or greater": "#FDD835", "Data Missing": "#D3D3D3"}    
 sugarybeverage_colormap = {"0 to <5%": "#F5EEF8", "5 to <10%": "#D7BDE2", "10 to <15%": "#AF7AC5", "15 to <20%": "#8E44AD", "20% or greater": "#4A235A", "Data Missing": "#D3D3D3"}
+# Street Connectivity will use the yellow to navy blue colormap. #
+streetconnectivity_colormap = { "0 to <0.40 - Low Connectivity": "#FFF7C0", "0.40 to <0.60 - Medium Connectivity": "#57ADD2", "0.60 to 1.00 - High Connectivity": "#052049", "Data Missing": "#D3D3D3" }
+# Traffic volume will invert this and use the navy blue to yellow colormap. #
+meantrafficperintersection_colormap = { "<25": "#052049", "25 to <50": "#2C6EAD", "50 to <75": "#57ADD2", "75 to <100": "#A6D9D0", "100 or greater": "#FFF7C0", "Data Missing": "#D3D3D3" }}
+# Uninsured / recreational facilities colormaps use the same blue color scheme, but are inverted to one another.
+uninsured_colormap = { "0 to <5%": "#052049",
+                      "5 to <10%": "#2C6EAD",
+                      "10 to <15%": "#57ADD2",
+                      "15 to <20%": "#A6D9D0",
+                      "20% or greater": "#FFF7C0",
+                     "Data Missing": "#D3D3D3" }
 # REI / RFEI uses an inverted foodinsecurity colormap. Consider changing this? Will the color inversion confuse users?
 rei_rfei_colormap = {"0": "#FDD835", "Q1": "#FFF59D", "Q2": "#E8F5E9", "Q3": "#A5D6A7", "Q4": "#66BB6A", "Data Missing": "#D3D3D3"}
 recreationalfacilities_colormap = {"<0.25 per 1,000": "#FFF7C0",       # Pastel Yellow
@@ -94,13 +105,26 @@ recreationalfacilities_colormap = {"<0.25 per 1,000": "#FFF7C0",       # Pastel 
     "1.00 or greater per 1,000": "#052049", # Navy Blue
     "Data Missing": "#D3D3D3"    # Standard Gray
 }
+# USDA RUCA, urban navy blue to rural green #
+ruralurbancontinuum_colormap = { "Metropolitan - Counties in metro areas of 250,000 population or greater": "#052049",
+                                "Metropolitan - Counties in metro areas of fewer than 250,000 population": "#2C6EAD",
+                                "Nonmetropolitan - Counties with urban population of 20,000 or more": "#FFF7C0",
+                                "Nonmetropolitan - Counties with urban population of 5,000 to <20,000": "#A5D6A7",
+                                "Nonmetropolitan - Counties with urban population fewer than 5,000": "#66BB6A",
+                                "Data Missing": "#D3D3D3" }
 index_colormap = {"Q1": "#FFF7C0", "Q2": "#A6D9D0", "Q3": "#57ADD2", "Q4": "#2C6EAD", "Q5": "#052049", "Data Missing": "#D3D3D3"}
 
 
 obesity_order = ["0 to <10%", "10 to <20%", "20 to <30%", "30 to <40%", "40% or greater"]
 obesogenicfactor_order = ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater"]
+streetconnectivity_order = [ "0 to <0.40 - Low Connectivity", "0.40 to <0.60 - Medium Connectivity", "0.60 to 1.00 - High Connectivity" ]
+meantrafficperintersection_order = [ "<25", "25 to <50", "50 to <75", "75 to <100", "100 or greater" ]
+uninsured_order = [ "0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater" ]
 rei_rfei_order = ["0", "Q1", "Q2", "Q3", "Q4"]
 recreationalfacilities_order = ["<0.25 per 1,000", "0.25 to <0.50 per 1,000", "0.50 to <0.75 per 1,000", "0.75 to <1.00 per 1,000", "1.00 or greater per 1,000"]
+ruralurbancontinuum_order = [ "Metropolitan - Counties in metro areas of 250,000 population or greater", "Metropolitan - Counties in metro areas of fewer than 250,000 population",
+                             "Nonmetropolitan - Counties with urban population of 20,000 or more", "Nonmetropolitan - Counties with urban population of 5,000 to <20,000",
+                             "Nonmetropolitan - Counties with urban population fewer than 5,000" ]
 index_order = ["Q1", "Q2", "Q3", "Q4", "Q5"]
 
 
@@ -145,8 +169,39 @@ FACTOR_CONFIG = {
         "allowed_years": chis_years, "allowed_geos": standard_geos
     },
     
-
+    # NaNDA Street Connectivity / Traffic Volume #
+    "streetconnectivity": {
+        "format_type": "raw",
+        "colors": streetconnectivity_colormap, "order": streetconnectivity_order, "label": "Street Connectivity (gamma)",
+        "allowed_years": [
+            { "label": "2020", "value": 2020 } ],
+        "allowed_geos": [
+            { "label": "County", "value": "county", "disabled": True },
+            { "label": "Census Tract", "value": "censustract" }
+        },
+    "meantrafficperintersection": {
+        "format_type": "raw",
+        "colors": meantrafficperintersection_colormap, "order": meantrafficperintersection_order, "label": "Mean Traffic per Intersection",
+        "allowed_years": [
+            { "label": "2016 - 3yr Imputed Mean", "value": 2016 } ],
+        "allowed_geos": [
+            { "label": "County", "value": "county", "disabled": True },
+            { "label": "Census Tract", "value": "censustract" }
+        },
     # These factors only have 2020 data, and is strictly locked to Census Tracts.
+    # Uninsured proportion is already provided as a clean percent; it is formatted as a raw
+    # value consequently.
+    "uninsured": {
+        "format_type": "raw",
+        "colors": uninsured_colormap, "order": uninsured_order, "label": "Percent of Non-institutionalized Civilians Uninsured",
+        "allowed_years": [
+            {'label': "2018-2022 5yr ACS", "value": 2020 }
+            ],
+        "allowed_geos": [
+            { "label": "County", "value": "county" },
+            { "label": "Census Tract", "value": "censustract" }
+        ]
+    },
     "rei_3yr": {
         "format_type": "raw",
         "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Restaurant Environment Index - 3yr average",
@@ -181,6 +236,18 @@ FACTOR_CONFIG = {
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
             {'label': 'Census Tract', 'value': 'censustract'}
+        ]
+    },
+    "ruralurbancontinuum": {
+        "format_type": "raw",
+        "colors": ruralurbancontinuum_colormap, "order": ruralurbancontinuum_order, "label": "USDA Rural Urban Continuum",
+        "allowed_years": [
+#            {'label': '2010 Decennial', 'value': 2010}, 
+            {'label': '2023', 'value': 2023}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county'},
+            {'label': 'Census Tract', 'value': 'censustract', 'disabled': True}
         ]
     },
     "nses": {
@@ -265,12 +332,12 @@ print("Loading master datasets...", flush=True)
 # Store the raw master datasets mapped to their respective geographic vintage
 master_data_store = {
     "county": {
-        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2010_20260624.xlsx", "county", 5),
-        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2020_20260624.xlsx", "county", 5)
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2010_20260721.xlsx", "county", 5),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2020_20260721.xlsx", "county", 5)
     },
     "censustract": {
-        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2010_20260624.xlsx", "censustract", 11),
-        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2020_20260624.xlsx", "censustract", 11)
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2010_20260721.xlsx", "censustract", 11),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2020_20260721.xlsx", "censustract", 11)
     }
 }
 
@@ -311,7 +378,7 @@ spatial_pipeline = {
 }
 
 def get_catchment_boundary(gdf, fips_list, geo_join_col):
-    """ Builds clean outer boundary traces while aggressively clearing out spatial gaps """
+    """ Builds clean outer boundary traces while removing spatial gaps """
     catchment_gdf = gdf[gdf[geo_join_col].str.slice(0, 5).isin(fips_list)]
     if not catchment_gdf.empty:
         original_crs = catchment_gdf.crs
@@ -349,11 +416,11 @@ for geo_type in ["county", "censustract"]:
         if vintage == 2010: geo_join_col = "GEOID10"
         elif vintage == 2020: geo_join_col = "GEOID"
         
-        # Extract the base shape IDs (we can safely use 'prod' since IDs are identical in 'debug')
+        # Extract the base shape IDs
         _, base_shapes = spatial_pipeline[geo_type][vintage]["prod"]
         master_df = master_data_store[geo_type][vintage]
         
-        # Perform the expensive merge operation once at startup
+        # Perform merge operation
         joined_df = pd.merge(
             base_shapes[[geo_join_col]], 
             master_df, 
@@ -541,14 +608,23 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
     # Fetch Base Assets
     geo_json_obj, base_shapes = spatial_pipeline[selected_geo][geo_year_key][render_mode]
     
-    # Fetch Pre-joined Data Source
-    # IMPORTANT: Use .copy() so we don't accidentally modify the cached data globally 
-    # when adding ghost rows or dynamic display columns later in this function.
-    datasource = mastershapefile[selected_geo][geo_year_key].copy()
 
     # Target Dynamic Columns based on UI selections
     val_col = f"{selected_factor}_{selected_year}"
     cat_col = f"{selected_factor}_category_{selected_year}"
+
+    # Define ONLY the columns required for this specific render
+    required_columns = [
+        geo_join_col,
+        location_name_col,
+        val_col,
+        cat_col
+    ]
+
+    # Fetch Pre-joined Data Source
+    # IMPORTANT: Use .copy() so we don't accidentally modify the cached data globally 
+    # when adding ghost rows or dynamic display columns later in this function.
+    datasource = mastershapefile[selected_geo][geo_year_key][required_columns].copy()
 
     # Fetch formatting metadata
     config = FACTOR_CONFIG[selected_factor]
