@@ -17,14 +17,21 @@
 # - "Apply changes" button to set options before rendering.
 # - Loading bar / "processing" indicator for better user responsiveness.
 # - Button-activated functionality for side-by-side visualizations.
-
-# To do:
 # - Front-load master dataset read-in. Join spatial data and master dataset once and programatically refer
 # to joined dataset for map rendering (instead of joining and rendering on each iteration).
 
 
-
-
+# To do:
+# - Implement address / ZIP code search function.
+# - Implement accessibility feature for context-specific text descriptions of map visualizations.
+# - It appears that there is a data processing error for the REI / RFEI data. Review this in the master dataset generation.
+# - There is a typo in the RUCA master dataset categorization that results in a category not being displayed correctly
+# in the dashboard.
+# - Labeling in master dataset needs to follow the variable_year + variable_category_year convention. Adjust this in the
+# master dataset step.
+# - Street connectivity resolution is insufficient using the low / medium / high connectivity breakpoints. Enormous portions
+# of California are also unpopulated for this variable.
+# 
 # Activate virtual environment
 # .\\.venv\scripts\activate.ps1
 
@@ -46,16 +53,14 @@ from shapely.geometry import Polygon, MultiPolygon
 #==============================================================================
 # READ IN SOURCE DATA & CATCHMENT CLASSIFICATIONS
 #==============================================================================
-workstation = "remote"
+workstation = "local"
 
 if workstation == "local":
-    county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/CA_county_2010.shp")
-    county_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - county/CA_county_2020.shp")
-    censustract_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/CA_tract_2010.shp")
-    censustract_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Census Area Units - census tract/CA_tract_2020.shp")
-    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/20260616/"
-    checkpoint_outputdatapath_counties = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_counties_20260616.xlsx"
-    checkpoint_outputdatapath_censustracts = "C:/users/nelso/Desktop/University of California San Francisco/DREAM Lab/Git Staging Area/HDFCCC-Obesity-and-Obesogenic-Factors-Dashboard/Output Data/WuNelson_HDFCCC_obesogenicfactors_censustracts_20260616.xlsx"
+    county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Shapefiles/obesogenicfactorsdashboard_county2010.shp")
+    county_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Shapefiles/obesogenicfactorsdashboard_county2020.shp")
+    censustract_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Shapefiles/obesogenicfactorsdashboard_censustract2010.shp")
+    censustract_2020 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Shapefiles/obesogenicfactorsdashboard_censustract2020.shp")
+    obesogenicfactors_filepath = "C:/Users/nelso/Downloads/Source Data/"
 elif workstation == "remote":
     county_2010 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_county2010.shp")
     county_2020 = gpd.read_file("M:/DREAM Lab/Obesity Supplement/Source Data/California Shapefiles/obesogenicfactorsdashboard_county2020.shp")
@@ -85,10 +90,9 @@ sugarybeverage_fips = ["06001", "06075", "06087"]
 obesity_colormap = {"0 to <10%": "#FFFFE0", "10 to <20%": "#FAD390", "20 to <30%": "#E59866", "30 to <40%": "#BA4A00", "40% or greater": "#6E2C00", "Data Missing": "#D3D3D3"}
 foodinsecurity_colormap = {"0 to <5%": "#66BB6A", "5 to <10%": "#A5D6A7", "10 to <15%": "#E8F5E9", "15 to <20%": "#FFF59D", "20% or greater": "#FDD835", "Data Missing": "#D3D3D3"}    
 sugarybeverage_colormap = {"0 to <5%": "#F5EEF8", "5 to <10%": "#D7BDE2", "10 to <15%": "#AF7AC5", "15 to <20%": "#8E44AD", "20% or greater": "#4A235A", "Data Missing": "#D3D3D3"}
-# Street Connectivity will use the yellow to navy blue colormap. #
+# Street Connectivity and traffic volume will use the yellow to navy blue colormap. #
 streetconnectivity_colormap = { "0 to <0.40 - Low Connectivity": "#FFF7C0", "0.40 to <0.60 - Medium Connectivity": "#57ADD2", "0.60 to 1.00 - High Connectivity": "#052049", "Data Missing": "#D3D3D3" }
-# Traffic volume will invert this and use the navy blue to yellow colormap. #
-meantrafficperintersection_colormap = { "<25": "#052049", "25 to <50": "#2C6EAD", "50 to <75": "#57ADD2", "75 to <100": "#A6D9D0", "100 or greater": "#FFF7C0", "Data Missing": "#D3D3D3" }}
+meantrafficperintersection_colormap = { "<25": "#FFF7C0", "25 to <50": "#A6D9D0", "50 to <75": "#57ADD2", "75 to <100": "#2C6EAD", "100 or greater": "#052049", "Data Missing": "#D3D3D3" }
 # Uninsured / recreational facilities colormaps use the same blue color scheme, but are inverted to one another.
 uninsured_colormap = { "0 to <5%": "#052049",
                       "5 to <10%": "#2C6EAD",
@@ -98,15 +102,15 @@ uninsured_colormap = { "0 to <5%": "#052049",
                      "Data Missing": "#D3D3D3" }
 # REI / RFEI uses an inverted foodinsecurity colormap. Consider changing this? Will the color inversion confuse users?
 rei_rfei_colormap = {"0": "#FDD835", "Q1": "#FFF59D", "Q2": "#E8F5E9", "Q3": "#A5D6A7", "Q4": "#66BB6A", "Data Missing": "#D3D3D3"}
-recreationalfacilities_colormap = {"<0.25 per 1,000": "#FFF7C0",       # Pastel Yellow
-    "0.25 to <0.50 per 1,000": "#A6D9D0",      # Light Aqua
-    "0.50 to <0.75 per 1,000": "#57ADD2",     # Sky Blue
-    "0.75 to <1.00 per 1,000": "#2C6EAD",     # Medium/Cobalt Blue
-    "1.00 or greater per 1,000": "#052049", # Navy Blue
+recreationalfacilities_colormap = {"<0.5 per 1,000": "#FFF7C0",       # Pastel Yellow
+    "0.5 to <1.0 per 1,000": "#A6D9D0",      # Light Aqua
+    "1.0 to <1.5 per 1,000": "#57ADD2",     # Sky Blue
+    "1.5 to <2.0 per 1,000": "#2C6EAD",     # Medium/Cobalt Blue
+    "2.0 or greater per 1,000": "#052049", # Navy Blue
     "Data Missing": "#D3D3D3"    # Standard Gray
 }
 # USDA RUCA, urban navy blue to rural green #
-ruralurbancontinuum_colormap = { "Metropolitan - Counties in metro areas of 250,000 population or greater": "#052049",
+ruralurbancontinuumcode_colormap = { "Metropolitan - Counties in metro areas of 250,000 population or greater": "#052049",
                                 "Metropolitan - Counties in metro areas of fewer than 250,000 population": "#2C6EAD",
                                 "Nonmetropolitan - Counties with urban population of 20,000 or more": "#FFF7C0",
                                 "Nonmetropolitan - Counties with urban population of 5,000 to <20,000": "#A5D6A7",
@@ -121,8 +125,8 @@ streetconnectivity_order = [ "0 to <0.40 - Low Connectivity", "0.40 to <0.60 - M
 meantrafficperintersection_order = [ "<25", "25 to <50", "50 to <75", "75 to <100", "100 or greater" ]
 uninsured_order = [ "0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater" ]
 rei_rfei_order = ["0", "Q1", "Q2", "Q3", "Q4"]
-recreationalfacilities_order = ["<0.25 per 1,000", "0.25 to <0.50 per 1,000", "0.50 to <0.75 per 1,000", "0.75 to <1.00 per 1,000", "1.00 or greater per 1,000"]
-ruralurbancontinuum_order = [ "Metropolitan - Counties in metro areas of 250,000 population or greater", "Metropolitan - Counties in metro areas of fewer than 250,000 population",
+recreationalfacilities_order = ["<0.5 per 1,000", "0.5 to <1.0 per 1,000", "1.0 to <1.5 per 1,000", "1.5 to <2.0 per 1,000", "2.0 or greater per 1,000"]
+ruralurbancontinuumcode_order = [ "Metropolitan - Counties in metro areas of 250,000 population or greater", "Metropolitan - Counties in metro areas of fewer than 250,000 population",
                              "Nonmetropolitan - Counties with urban population of 20,000 or more", "Nonmetropolitan - Counties with urban population of 5,000 to <20,000",
                              "Nonmetropolitan - Counties with urban population fewer than 5,000" ]
 index_order = ["Q1", "Q2", "Q3", "Q4", "Q5"]
@@ -178,6 +182,7 @@ FACTOR_CONFIG = {
         "allowed_geos": [
             { "label": "County", "value": "county", "disabled": True },
             { "label": "Census Tract", "value": "censustract" }
+        ]
         },
     "meantrafficperintersection": {
         "format_type": "raw",
@@ -187,13 +192,14 @@ FACTOR_CONFIG = {
         "allowed_geos": [
             { "label": "County", "value": "county", "disabled": True },
             { "label": "Census Tract", "value": "censustract" }
+        ]
         },
     # These factors only have 2020 data, and is strictly locked to Census Tracts.
     # Uninsured proportion is already provided as a clean percent; it is formatted as a raw
     # value consequently.
     "uninsured": {
         "format_type": "raw",
-        "colors": uninsured_colormap, "order": uninsured_order, "label": "Percent of Non-institutionalized Civilians Uninsured",
+        "colors": uninsured_colormap, "order": uninsured_order, "label": "Healthcare Accessibility - Uninsured",
         "allowed_years": [
             {'label': "2018-2022 5yr ACS", "value": 2020 }
             ],
@@ -206,8 +212,7 @@ FACTOR_CONFIG = {
         "format_type": "raw",
         "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Restaurant Environment Index - 3yr average",
         "allowed_years": [
-#            {'label': '2010 Decennial', 'value': 2010}, 
-            {'label': '2020 Decennial', 'value': 2020}
+            {'label': '2020', 'value': 2020}
         ],
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
@@ -217,9 +222,8 @@ FACTOR_CONFIG = {
     "rfei_3yr": {
         "format_type": "raw",
         "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Retail Food Environment Index - 3yr average",
-        "allowed_years": [
-#            {'label': '2010 Decennial', 'value': 2010}, 
-            {'label': '2020 Decennial', 'value': 2020}
+        "allowed_years": [ 
+            {'label': '2020', 'value': 2020}
         ],
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
@@ -230,19 +234,17 @@ FACTOR_CONFIG = {
         "format_type": "percapita",
         "colors": recreationalfacilities_colormap, "order": recreationalfacilities_order, "label": "Recreational Facilities per capita - 3yr average",
         "allowed_years": [
-#            {'label': '2010 Decennial', 'value': 2010}, 
-            {'label': '2020 Decennial', 'value': 2020}
+            {'label': '2020', 'value': 2020}
         ],
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
             {'label': 'Census Tract', 'value': 'censustract'}
         ]
     },
-    "ruralurbancontinuum": {
+    "ruralurbancontinuumcode": {
         "format_type": "raw",
-        "colors": ruralurbancontinuum_colormap, "order": ruralurbancontinuum_order, "label": "USDA Rural Urban Continuum",
+        "colors": ruralurbancontinuumcode_colormap, "order": ruralurbancontinuumcode_order, "label": "USDA Rural Urban Continuum",
         "allowed_years": [
-#            {'label': '2010 Decennial', 'value': 2010}, 
             {'label': '2023', 'value': 2023}
         ],
         "allowed_geos": [
@@ -254,8 +256,7 @@ FACTOR_CONFIG = {
         "format_type": "raw",
         "colors": index_colormap, "order": index_order, "label": "Neighborhood Socioeconomic Status",
         "allowed_years": [
-#            {'label': '2010 Decennial', 'value': 2010}, 
-            {'label': '2020 Decennial', 'value': 2020}
+            {'label': '2020', 'value': 2020}
         ],
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
@@ -266,7 +267,7 @@ FACTOR_CONFIG = {
         "format_type": "raw",
         "colors": index_colormap, "order": index_order, "label": "Social Vulnerability Index",
         "allowed_years": [
-            {'label': '2020 Decennial', 'value': 2020}
+            {'label': '2020', 'value': 2020}
         ],
         "allowed_geos": [
             {'label': 'County', 'value': 'county', 'disabled': True},
@@ -280,9 +281,13 @@ FACTOR_CONFIG = {
 GEO_VINTAGE_MAP = {
     # Default logic 
     "default_vintage": {
+        "streetconnectivity": 2020,
+        "meantrafficperintersection": 2010,
+        "uninsured": 2020,
         "rei_3yr": 2020,
         "rfei_3yr": 2020,
         "recreationalfacilitiespercapita_3yr": 2020,
+        "ruralurbancontinuumcode": 2020,
         "nses": 2020,
         "svi": 2020
     },
@@ -346,18 +351,16 @@ master_data_store = {
 #==============================================================================
 print("Pre-building high vs debug spatial layers...", flush=True)
 
-def generate_spatial_cache(gdf, filter_col, state_code, target_id_col, prod_tol, debug_tol):
-    california_shapes = gdf[gdf[filter_col] == state_code].copy()
-    
+def generate_spatial_cache(gdf, target_id_col, prod_tol, debug_tol):
     # High Fidelity Geometry Cache
-    prod_shapes = california_shapes.copy()
+    prod_shapes = gdf.copy()
     prod_shapes['geometry'] = prod_shapes.geometry.simplify(prod_tol, preserve_topology=True)
     if prod_shapes.crs != "EPSG:4326": prod_shapes = prod_shapes.to_crs(epsg=4326)
     prod_shapes[target_id_col] = prod_shapes[target_id_col].astype(str).str.strip()
     prod_json = json.loads(prod_shapes.to_json())
 
     # Aggressive Debug Optimization Cache (Significantly drops coordinate arrays)
-    debug_shapes = california_shapes.copy()
+    debug_shapes = gdf.copy()
     debug_shapes['geometry'] = debug_shapes.geometry.simplify(debug_tol, preserve_topology=True)
     if debug_shapes.crs != "EPSG:4326": debug_shapes = debug_shapes.to_crs(epsg=4326)
     debug_shapes[target_id_col] = debug_shapes[target_id_col].astype(str).str.strip()
@@ -368,12 +371,12 @@ def generate_spatial_cache(gdf, filter_col, state_code, target_id_col, prod_tol,
 # Setup dual-layer spatial pipeline
 spatial_pipeline = {
     "county": {
-        2010: generate_spatial_cache(county_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=20, debug_tol=1200),
-        2020: generate_spatial_cache(county_projected_2020, "STATEFP", "06", "GEOID", prod_tol=20, debug_tol=1200)
+        2010: generate_spatial_cache(county_projected_2010, "GEOID10", prod_tol=20, debug_tol=1200),
+        2020: generate_spatial_cache(county_projected_2020, "GEOID", prod_tol=20, debug_tol=1200)
     },
     "censustract": {
-        2010: generate_spatial_cache(censustract_projected_2010, "STATEFP10", "06", "GEOID10", prod_tol=5, debug_tol=2200),
-        2020: generate_spatial_cache(censustract_projected_2020, "STATEFP", "06", "GEOID", prod_tol=5, debug_tol=2200)
+        2010: generate_spatial_cache(censustract_projected_2010, "GEOID10", prod_tol=5, debug_tol=2200),
+        2020: generate_spatial_cache(censustract_projected_2020, "GEOID", prod_tol=5, debug_tol=2200)
     }
 }
 
@@ -437,20 +440,8 @@ print("Pre-join complete.", flush=True)
 #==============================================================================
 # Options reused across both maps
 factor_opts = [
-    {'label': 'Adult Obesity', 'value': 'adultobesity'},
-    {'label': 'Child Overweight', 'value': 'childoverweight'},
-    {'label': 'Teen Overweight/Obese', 'value': 'teenoverweightobese'},
-    {'label': 'Adult Food Insecurity', 'value': 'adultfoodinsecurity'},
-    {'label': 'Adult Sugary Beverage Consumption', 'value': 'adultsugarybev'},
-    {'label': 'Restaurant Environment Index (REI) - 3yr average', 'value': 'rei_3yr'},
-    {'label': 'Retail Food Environment Index (RFEI) - 3yr average', 'value': 'rfei_3yr'},
-    {'label': 'Recreational Facilities per capita - 3yr average', 'value': 'recreationalfacilitiespercapita_3yr'},
-    {'label': 'Neighborhood Socioeconomic Status (nSES)', 'value': 'nses'},
-    {'label': 'Social Vulnerability Index (SVI)', 'value': 'svi'}
-]
-year_opts = [
-    {'label': '2015-2016', 'value': 2016}, {'label': '2017-2018', 'value': 2018},
-    {'label': '2019-2020', 'value': 2020}, {'label': '2021-2022', 'value': 2022}
+    { 'label': config["label"], 'value': factor}
+    for factor, config in FACTOR_CONFIG.items()
 ]
 geo_opts = [
     {'label': 'County', 'value': 'county'}, {'label': 'Census Tract', 'value': 'censustract'}
@@ -676,10 +667,6 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         final_categories.extend(["Data Missing", "Data Missing - outside catchment area"])
         active_color_discrete_map["Data Missing - outside catchment area"] = hex_to_rgba(base_colors["Data Missing"], alpha=0.15)
 
-    # Inject "Ghost" rows to force Plotly to render all legend items even if they don't exist in the current map view
-    ghost_df = pd.DataFrame([{geo_join_col: f"ghost_{c}", color_column_to_use: c, "display_val": np.nan} for c in final_categories])
-    datasource = pd.concat([datasource, ghost_df], ignore_index=True)
-
     cat_type = pd.CategoricalDtype(categories=final_categories, ordered=True)
     datasource[color_column_to_use] = datasource[color_column_to_use].astype(cat_type)
 
@@ -698,7 +685,7 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         datasource, geojson=geo_json_obj, locations=datasource[geo_join_col],
         featureidkey="properties." + geo_join_col, color=color_column_to_use,
         color_discrete_map=active_color_discrete_map, category_orders={color_column_to_use: final_categories},
-        mapbox_style="carto-positron", zoom=5.1, center={"lat": (miny + maxy) / 2, "lon": (minx + maxx) / 2},
+        mapbox_style="carto-positron", zoom=5.1, center={"lat": 37.2, "lon": -119.5},
         opacity=0.85, custom_data=[location_name_col, color_column_to_use, "display_val"]
     )
 
@@ -719,7 +706,6 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
         marker_line_width=0.2 if selected_geo == "censustract" else 0.5,
         marker_line_color="#ffffff",
         hovertemplate="<b>%{customdata[0]}</b><br>Category: %{customdata[1]}<br>Value: %{customdata[2]}" + suffix + "<extra></extra>",
-        customdata=datasource[[location_name_col, color_column_to_use, 'display_val']]
     )
     fig.update_layout(
         margin={"r": 0, "t": 10, "l": 0, "b": 0},
