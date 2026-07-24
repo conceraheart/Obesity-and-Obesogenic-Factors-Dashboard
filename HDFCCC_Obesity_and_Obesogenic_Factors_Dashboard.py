@@ -19,19 +19,16 @@
 # - Button-activated functionality for side-by-side visualizations.
 # - Front-load master dataset read-in. Join spatial data and master dataset once and programatically refer
 # to joined dataset for map rendering (instead of joining and rendering on each iteration).
-
+# - Address search / ZIP code search implemented.
+# - Accessibility feature implemented for context-specific text descriptions of map visualizations.
 
 # To do:
-# - Implement address / ZIP code search function.
-# - Implement accessibility feature for context-specific text descriptions of map visualizations.
-# - It appears that there is a data processing error for the REI / RFEI data. Review this in the master dataset generation.
-# - There is a typo in the RUCA master dataset categorization that results in a category not being displayed correctly
-# in the dashboard.
-# - Labeling in master dataset needs to follow the variable_year + variable_category_year convention. Adjust this in the
-# master dataset step.
 # - Street connectivity resolution is insufficient using the low / medium / high connectivity breakpoints. Enormous portions
 # of California are also unpopulated for this variable.
-# 
+# - Adjust map synchronization. Currently, map 2 will update any time map 1 frame is changed. Update such that map 2 updates frames
+# only when the "Synchronize Maps" button is pressed.
+# - Update text addendum to be more professional and include more explicit information on provided data.
+  
 # Activate virtual environment
 # .\\.venv\scripts\activate.ps1
 
@@ -50,10 +47,17 @@ from dash import dcc, html, State, Patch, no_update
 from dash.dependencies import Input, Output
 from shapely.geometry import Polygon, MultiPolygon
 
+import geopy
+from geopy.geocoders import Nominatim
+import plotly.graph_objects as go
+
+# Initialize geocoder #
+geolocator = Nominatim(user_agent="hdfccc_obesity_dashboard")
+
 #==============================================================================
 # READ IN SOURCE DATA & CATCHMENT CLASSIFICATIONS
 #==============================================================================
-workstation = "local"
+workstation = "remote"
 
 if workstation == "local":
     county_2010 = gpd.read_file("C:/Users/nelso/Downloads/Source Data/Shapefiles/obesogenicfactorsdashboard_county2010.shp")
@@ -276,6 +280,117 @@ FACTOR_CONFIG = {
     }
 }
 
+# Dynamic figure descriptions. #
+# This is a hassle but I opted to write explicit descriptions for each factor-year-geography #
+# in order to maintain the highest level of granular control over the output description. #
+factor_descriptions = {
+    # CHIS Variables #
+    ("adultobesity", 2016, "county" ): "CHIS Adult Obesity 2015-2016 in California Counties, 2010 Geographies",
+    ("adultobesity", 2018, "county" ): "CHIS Adult Obesity 2017-2018 in California Counties, 2010 Geographies",
+    ("adultobesity", 2020, "county" ): "CHIS Adult Obesity 2019-2020 in California Counties, 2010 Geographies",
+    ("adultobesity", 2022, "county" ): "CHIS Adult Obesity 2021-2022 in California Counties, 2020 Geographies",
+    ("adultobesity", 2016, "censustract" ): "CHIS Adult Obesity 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2018, "censustract" ): "CHIS Adult Obesity 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2020, "censustract" ): "CHIS Adult Obesity 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2022, "censustract" ): "CHIS Adult Obesity 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("teenoverweightobese", 2016, "county" ): "CHIS Teen Overweight/Obese 2015-2016 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2018, "county" ): "CHIS Teen Overweight/Obese 2017-2018 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2020, "county" ): "CHIS Teen Overweight/Obese 2019-2020 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2022, "county" ): "CHIS Teen Overweight/Obese 2021-2022 in California Counties, 2020 Geographies",
+    ("teenoverweightobese", 2016, "censustract" ): "CHIS Teen Overweight/Obese 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2018, "censustract" ): "CHIS Teen Overweight/Obese 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2020, "censustract" ): "CHIS Teen Overweight/Obese 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2022, "censustract" ): "CHIS Teen Overweight/Obese 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("childoverweight", 2016, "county" ): "CHIS Child Overweight 2015-2016 in California Counties, 2010 Geographies",
+    ("childoverweight", 2018, "county" ): "CHIS Child Overweight 2017-2018 in California Counties, 2010 Geographies",
+    ("childoverweight", 2020, "county" ): "CHIS Child Overweight 2019-2020 in California Counties, 2010 Geographies",
+    ("childoverweight", 2022, "county" ): "CHIS Child Overweight 2021-2022 in California Counties, 2020 Geographies",
+    ("childoverweight", 2016, "censustract" ): "CHIS Child Overweight 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2018, "censustract" ): "CHIS Child Overweight 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2020, "censustract" ): "CHIS Child Overweight 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2022, "censustract" ): "CHIS Child Overweight 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("adultfoodinsecurity", 2016, "county" ): "CHIS Adult Food Insecurity 2015-2016 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2018, "county" ): "CHIS Adult Food Insecurity 2017-2018 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2020, "county" ): "CHIS Adult Food Insecurity 2019-2020 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2022, "county" ): "CHIS Adult Food Insecurity 2021-2022 in California Counties, 2020 Geographies",
+    ("adultfoodinsecurity", 2016, "censustract" ): "CHIS Adult Food Insecurity 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2018, "censustract" ): "CHIS Adult Food Insecurity 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2020, "censustract" ): "CHIS Adult Food Insecurity 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2022, "censustract" ): "CHIS Adult Food Insecurity 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("adultsugarybev", 2016, "county" ): "CHIS Adult Sugary Beverage Consumption 2015-2016 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2018, "county" ): "CHIS Adult Sugary Beverage Consumption 2017-2018 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2020, "county" ): "CHIS Adult Sugary Beverage Consumption 2019-2020 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2022, "county" ): "CHIS Adult Sugary Beverage Consumption 2021-2022 in California Counties, 2020 Geographies",
+    ("adultsugarybev", 2016, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2018, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2020, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2022, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2021-2022 in California Census Tracts, 2020 Geographies",
+
+    # NaNDA #
+    ("streetconnectivity", 2020, "censustract"): "2020 NaNDA Street Connectivity (gamma) in California Census Tracts, 2020 Geographies",
+    ("meantrafficperintersection", 2016, "censustract"): "NaNDA Mean Traffic per Intersection, 3yr Imputed Mean Centered on 2016 in California Census Tracts, 2010 Geographies",
+
+    # US Census Bureau ACS #
+    ("uninsured", 2020, "county"): "2018-2022 5yr ACS Uninsured Proportion of Civilian Non-institutionalized Population in California Counties, 2020 Geographies",
+    ("uninsured", 2020, "censustract"): "2018-2022 5yr ACS Uninsured Proportion of Civilian Non-institutionalized Population in California Census Tracts, 2020 Geographies",
+
+    # Mergent Business Data #
+    ("rei_3yr", 2020, "censustract"): "Restaurant Environment Index (REI), 3yr Average Centered on 2020 in California Census Tracts, 2020 Geographies",
+    ("rfei_3yr", 2020, "censustract"): "Retail Food Environment Index (RFEI), 3yr Average Centered on 2020 in California Census Tracts, 2020 Geographies",
+    ("recreationalfacilitiespercapita_3yr", 2020, "censustract"): "Recreational Facilities per capita, 3yr Average Centered on 2020 in California Census Tracts, 2020 Geographies",
+
+    # USDA RUCA #
+    ("ruralurbancontinuumcode", 2023, "county"): "USDA 2023 Rural Urban Continuum Codes in California Counties, 2020 Geographies",
+
+    # nSES Index #
+    ("nses", 2020, "censustract"): "2020 Neighborhood Socioeconomic Status (nSES) Index in California Census Tracts, 2020 Geographies",
+
+    # CDC SVI #
+    ("svi", 2020, "censustract"): "2020 Social Vulnerability Index (SVI) in California Census Tracts, 2020 Geographies"
+}
+
+# Legend Display Dictionary #
+year_display_styles = {
+    "chis_2yr": {
+        2016: "2015-2016", 
+        2018: "2017-2018", 
+        2020: "2019-2020", 
+        2022: "2021-2022"
+    },
+    "acs_5yr": {
+        2020: "2018-2022 5yr ACS"
+    },
+    "3yr_average": {
+        2016: "2016 - 3yr Imputed Mean",
+        2020: "2020 - 3yr Average"
+    },
+    "single_year": {
+        2016: "2016", 
+        2018: "2018", 
+        2020: "2020", 
+        2022: "2022", 
+        2023: "2023"
+    }
+}
+
+# Map variables #
+factor_style_map = {
+    "adultobesity": "chis_2yr",
+    "teenoverweightobese": "chis_2yr",
+    "childoverweight": "chis_2yr",
+    "adultfoodinsecurity": "chis_2yr",
+    "adultsugarybev": "chis_2yr",
+    "uninsured": "acs_5yr",
+    "streetconnectivity": "single_year",
+    "meantrafficperintersection": "3yr_average",
+    "ruralurbancontinuum": "single_year",
+    "nses": "single_year",
+    "svi": "single_year",
+    "rei_3yr": "3yr_average",
+    "rfei_3yr": "3yr_average",
+    "recreationalfacilitiespercapita_3yr": "3yr_average"
+}
+
 # Configuration for geography vintages
 # Logic: Map (factor, year) -> required geo_year_key
 GEO_VINTAGE_MAP = {
@@ -439,10 +554,16 @@ print("Pre-join complete.", flush=True)
 # UI CONTROL BUILDERS
 #==============================================================================
 # Options reused across both maps
+default_factor = 'adultobesity'
+
 factor_opts = [
     { 'label': config["label"], 'value': factor}
     for factor, config in FACTOR_CONFIG.items()
 ]
+
+# Dynamically set the initial year options based on the default factor's configuration
+year_opts = FACTOR_CONFIG[default_factor]["allowed_years"]
+
 geo_opts = [
     {'label': 'County', 'value': 'county'}, {'label': 'Census Tract', 'value': 'censustract'}
 ]
@@ -454,6 +575,7 @@ catchment_opts = [
 ]
 
 def create_control_panel(map_id_prefix, title, is_secondary=False):
+    default_year = year_opts[0]['value']
     return html.Div(id=f'panel-{map_id_prefix}', style={'marginBottom': '20px', 'display': 'none' if is_secondary else 'block'}, children=[
         html.H4(title, style={'borderBottom': '1px solid #ddd', 'paddingBottom': '5px', 'color': '#333', 'marginTop': '15px'}),
         
@@ -471,13 +593,17 @@ def create_control_panel(map_id_prefix, title, is_secondary=False):
         dcc.RadioItems(id=f'catchment-toggle-{map_id_prefix}', options=catchment_opts, value='all', labelStyle={'display': 'block', 'marginBottom': '4px'}),
     ])
 
-def create_sync_button( is_secondary=False ):
-    return html.Div( style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center' }, children=[
+def create_sync_button(is_secondary=False):
+    return html.Div(style={'display': 'flex', 'justifyContent': 'center', 'alignItems': 'center'}, children=[
         html.Button('Synchronize Maps', id='sync-btn', n_clicks=0, style={
-        'display': 'none' if is_secondary else 'block',
-        'width': '60%', "height": '60%', 'padding': '12px', 'backgroundColor': '#052049', 
-        'color': 'white', 'border': 'none', 'borderRadius': '3px', 'fontSize': '14px', 
-        'cursor': 'pointer', 'fontWeight': 'bold', 'marginTop': '5px' }) ] )
+            'display': 'none' if is_secondary else 'block',
+            'width': '60%', "height": '60%', 'padding': '12px', 'backgroundColor': '#052049', 
+            'color': 'white', 'border': 'none', 'borderRadius': '3px', 'fontSize': '14px', 
+            'cursor': 'pointer', 'fontWeight': 'bold', 'marginTop': '5px'
+        })
+    ])
+
+
 
 #==============================================================================
 # DASH LAYOUT
@@ -518,7 +644,33 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
             # Synchronize Maps Button
             # Only shown if side-by-side maps are enabled. When clicked, it will synchronize both maps to changes made to the primary
             # map boundaries.
-            create_sync_button(is_secondary=True),            
+            create_sync_button(is_secondary=True), 
+            
+            html.Div(style={'margin': '20px 0', 'padding': '15px 0', 'borderTop': '1px dashed #ccc'}, children=[
+                html.Button('📍 Search by Address / ZIP', id='toggle-search-btn', n_clicks=0, style={
+                    'width': '100%', 'padding': '10px', 'backgroundColor': '#f5f5f5', 'color': '#052049',
+                    'border': '1px solid #052049', 'borderRadius': '5px', 'cursor': 'pointer', 'fontWeight': 'bold'
+                    }) 
+                ]),
+            # Hidden by default. #
+            html.Div(id='search-input-container', style={'display': 'none', 'marginTop': '10px'}, children=[
+                dcc.Input(
+                    id='search-location-input', type='text',
+                    placeholder='Enter ZIP or CA Address.',
+                    style={'width': '95%', 'padding': '8px', 'marginBottom': '10px'}
+                    ),
+                html.Div(style={'display': 'flex', 'gap': '10px', 'width': '95%'}, children=[
+                    html.Button('Locate', id='submit-location-btn', n_clicks=0, style={
+                        'flex': '1', 'padding': '8px', 'backgroundColor': '#57ADD2',
+                        'color': 'white', 'border': 'none', 'borderRadius': '3px', 'cursor': 'pointer', 'fontWeight': 'bold'
+                        }),
+                    html.Button('Clear Pins', id='clear-pins-btn', n_clicks=0, style={
+                        'flex': '1', 'padding': '8px', 'backgroundColor': '#E59866',
+                        'color': 'white', 'border': 'none', 'borderRadius': '3px', 'cursor': 'pointer', 'fontWeight': 'bold'
+                        })
+                    ])
+                ]),
+
             # Map 2 Controls (Hidden by default)
             create_control_panel('2', 'Map 2 Options', is_secondary=True),
             
@@ -553,12 +705,20 @@ app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': 
                         # Map 1
                         # flex: 1 ensures it shares space equally, minWidth: 0 stops horizontal overflow
                         html.Div(id='map1-wrapper', style={'flex': '1', 'minWidth': 0}, children=[
-                            dcc.Graph(id='spatial-choropleth-map-1', style={'height': '650px'}) 
+                            dcc.Graph(id='spatial-choropleth-map-1', style={'height': '650px'}),
+                            html.Div(id='map1-description-box', style={
+                                'marginTop': '10px', 'padding': '15px', 'backgroundColor': '#ffffff',
+                                'border': '1px solid #ddd', 'borderRadius': '5px', 'fontSize': '14px'
+                                })
                         ]),
                         
                         # Map 2 (Hidden by default)
                         html.Div(id='map2-wrapper', style={'display': 'none'}, children=[
-                            dcc.Graph(id='spatial-choropleth-map-2', style={'height': '650px'})
+                            dcc.Graph(id='spatial-choropleth-map-2', style={'height': '650px'}),
+                            html.Div(id='map2-description-box', style={
+                                'marginTop': '10px', 'padding': '15px', 'backgroundColor': '#ffffff',
+                                'border': '1px solid #ddd', 'borderRadius': '5px', 'fontSize': '14px'
+                                })
                         ])
                     ])
                 ]
@@ -672,13 +832,14 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
 
     # Render the Map
     minx, miny, maxx, maxy = base_shapes.total_bounds
-    
-    year_display_strings = {2016: "2015-2016", 2018: "2017-2018", 2020: "2019-2020", 2022: "2021-2022"}
+
+    style_key = factor_style_map.get(selected_factor, "single_year")
+    year_display_strings = year_display_styles[style_key].get(selected_year, str(selected_year))
     geo_display_strings = {"county": "County", "censustract": "Census Tract"}
     legend_combined_title = (
         f"<b>{metric_label}</b><br>"
         f"<span style='font-size: 11px; font-weight: normal; color: #555555;'>"
-        f"{geo_display_strings.get(selected_geo, '')}, {year_display_strings.get(selected_year, '')}</span>"
+        f"{geo_display_strings.get(selected_geo, '')}, {year_display_strings}</span>"
     )
 
     fig = px.choropleth_mapbox(
@@ -738,7 +899,9 @@ def toggle_dual_mode(toggle_val):
 # Main Generation Callback (Triggers on boot and "Apply Changes" click)
 @app.callback(
     [Output('spatial-choropleth-map-1', 'figure'),
+     Output('map1-description-box', 'children'),
      Output('spatial-choropleth-map-2', 'figure'),
+     Output('map2-description-box', 'children'),
      Output('status-alert-container', 'style')],
     [Input('apply-btn', 'n_clicks')],
     [State('factor-dropdown-1', 'value'), State('year-dropdown-1', 'value'), 
@@ -751,12 +914,17 @@ def toggle_dual_mode(toggle_val):
 def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
     # Initialize Map 1
     fig1 = generate_choropleth(f1, y1, g1, c1, prod_mode)
-    
+    desc1_text = factor_descriptions.get((f1, y1, g1), "Description not currently available for this variable.")
+    desc1_content = [html.B("Figure 1. "), html.Span(desc1_text)]
+
     # Initialize Map 2 (if dual mode is active)
     if 'dual' in dual_mode:
         fig2 = generate_choropleth(f2, y2, g2, c2, prod_mode)
+        desc2_text = factor_descriptions.get((f2, y2, g2), "Description not currently available for this variable.")
+        desc2_content = [html.B("Figure 2. "), html.Span(desc2_text)]
     else:
         fig2 = no_update
+        desc2_content = ""
         
     # Manage Status Indicator Visibility
     if n_clicks == 0:
@@ -769,7 +937,7 @@ def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
             'border': '1px solid #c3e6cb', 'boxShadow': '0 1px 3px rgba(0,0,0,0.1)'
         }
         
-    return fig1, fig2, alert_style
+    return fig1, desc1_content, fig2, desc2_content, alert_style
 
 # Context Menu Sync for Map 1
 @app.callback(
@@ -831,6 +999,83 @@ def sync_maps(relayout_data, n_clicks, dual_mode):
         if 'mapbox.center' in relayout_data:
             patched_fig['layout']['mapbox']['center'] = relayout_data['mapbox.center']
         return patched_fig
+        
+    return no_update
+
+# Toggle search bar visibility
+@app.callback(
+    Output('search-input-container', 'style'),
+    [Input('toggle-search-btn', 'n_clicks')],
+    prevent_initial_call=True
+)
+def toggle_search_bar(n_clicks):
+    if n_clicks % 2 == 1:
+        return {'display': 'block', 'marginTop': '10px'}
+    return {'display': 'none'}
+
+# Process Search, Center Map, and Drop Pin
+@app.callback(
+    Output('spatial-choropleth-map-1', 'figure', allow_duplicate=True),
+    [Input('submit-location-btn', 'n_clicks')],
+    [State('search-location-input', 'value')],
+    prevent_initial_call=True
+)
+def search_and_locate(n_clicks, search_term):
+    if not search_term:
+        return no_update
+        
+    # Append "California" to ensure the API scopes the search properly
+    query = f"{search_term}, California"
+    
+    try:
+        location = geolocator.geocode(query)
+        
+        if location:
+            # Use Patch to update the map without redrawing the polygons
+            patched_fig = Patch()
+            
+            # 1. Update Mapbox Center and Zoom
+            patched_fig['layout']['mapbox']['center'] = {'lat': location.latitude, 'lon': location.longitude}
+            patched_fig['layout']['mapbox']['zoom'] = 11.5 # Zoom in tight on the neighborhood
+            
+            # 2. Create the Pin Marker
+            pin_trace = go.Scattermapbox(
+                lat=[location.latitude],
+                lon=[location.longitude],
+                mode='markers',
+                marker=go.scattermapbox.Marker(size=4, color='#000000', symbol='circle'),
+                name='Searched Location',
+                hovertemplate=f"<b>{search_term}</b><br>Lat: {location.latitude:.4f}<br>Lon: {location.longitude:.4f}<extra></extra>"
+            )
+            
+            # 3. Append the pin trace to the existing map data
+            patched_fig['data'].append(pin_trace)
+            
+            return patched_fig
+            
+    except Exception as e:
+        print(f"Geocoding Error: {e}")
+        
+    # If no location is found or an error occurs, do nothing
+    return no_update
+
+# Clear Pinned Search Locations
+@app.callback(
+    Output('spatial-choropleth-map-1', 'figure', allow_duplicate=True),
+    [Input('clear-pins-btn', 'n_clicks')],
+    [State('spatial-choropleth-map-1', 'figure')],
+    prevent_initial_call=True
+)
+def clear_search_pins(n_clicks, current_fig):
+    if n_clicks > 0 and current_fig:
+        
+        # Re-build the figure's data array, excluding traces named 'Searched Location'
+        current_fig['data'] = [
+            trace for trace in current_fig['data'] 
+            if trace.get('name') != 'Searched Location'
+        ]
+        
+        return current_fig
         
     return no_update
 
