@@ -285,54 +285,54 @@ FACTOR_CONFIG = {
 # in order to maintain the highest level of granular control over the output description. #
 factor_descriptions = {
     # CHIS Variables #
-    ("adultobesity", 2016, "county" ): "CHIS Adult Obesity 2015-2016 in California Counties, 2010 Geographies",
-    ("adultobesity", 2018, "county" ): "CHIS Adult Obesity 2017-2018 in California Counties, 2010 Geographies",
-    ("adultobesity", 2020, "county" ): "CHIS Adult Obesity 2019-2020 in California Counties, 2010 Geographies",
-    ("adultobesity", 2022, "county" ): "CHIS Adult Obesity 2021-2022 in California Counties, 2020 Geographies",
-    ("adultobesity", 2016, "censustract" ): "CHIS Adult Obesity 2015-2016 in California Census Tracts, 2010 Geographies",
-    ("adultobesity", 2018, "censustract" ): "CHIS Adult Obesity 2017-2018 in California Census Tracts, 2010 Geographies",
-    ("adultobesity", 2020, "censustract" ): "CHIS Adult Obesity 2019-2020 in California Census Tracts, 2010 Geographies",
-    ("adultobesity", 2022, "censustract" ): "CHIS Adult Obesity 2021-2022 in California Census Tracts, 2020 Geographies",
-    ("teenoverweightobese", 2016, "county" ): "CHIS Teen Overweight/Obese 2015-2016 in California Counties, 2010 Geographies",
-    ("teenoverweightobese", 2018, "county" ): "CHIS Teen Overweight/Obese 2017-2018 in California Counties, 2010 Geographies",
-    ("teenoverweightobese", 2020, "county" ): "CHIS Teen Overweight/Obese 2019-2020 in California Counties, 2010 Geographies",
-    ("teenoverweightobese", 2022, "county" ): "CHIS Teen Overweight/Obese 2021-2022 in California Counties, 2020 Geographies",
-    ("teenoverweightobese", 2016, "censustract" ): "CHIS Teen Overweight/Obese 2015-2016 in California Census Tracts, 2010 Geographies",
-    ("teenoverweightobese", 2018, "censustract" ): "CHIS Teen Overweight/Obese 2017-2018 in California Census Tracts, 2010 Geographies",
-    ("teenoverweightobese", 2020, "censustract" ): "CHIS Teen Overweight/Obese 2019-2020 in California Census Tracts, 2010 Geographies",
-    ("teenoverweightobese", 2022, "censustract" ): "CHIS Teen Overweight/Obese 2021-2022 in California Census Tracts, 2020 Geographies",
-    ("childoverweight", 2016, "county" ): "CHIS Child Overweight 2015-2016 in California Counties, 2010 Geographies",
-    ("childoverweight", 2018, "county" ): "CHIS Child Overweight 2017-2018 in California Counties, 2010 Geographies",
-    ("childoverweight", 2020, "county" ): "CHIS Child Overweight 2019-2020 in California Counties, 2010 Geographies",
-    ("childoverweight", 2022, "county" ): "CHIS Child Overweight 2021-2022 in California Counties, 2020 Geographies",
-    ("childoverweight", 2016, "censustract" ): "CHIS Child Overweight 2015-2016 in California Census Tracts, 2010 Geographies",
-    ("childoverweight", 2018, "censustract" ): "CHIS Child Overweight 2017-2018 in California Census Tracts, 2010 Geographies",
-    ("childoverweight", 2020, "censustract" ): "CHIS Child Overweight 2019-2020 in California Census Tracts, 2010 Geographies",
-    ("childoverweight", 2022, "censustract" ): "CHIS Child Overweight 2021-2022 in California Census Tracts, 2020 Geographies",
-    ("adultfoodinsecurity", 2016, "county" ): "CHIS Adult Food Insecurity 2015-2016 in California Counties, 2010 Geographies",
-    ("adultfoodinsecurity", 2018, "county" ): "CHIS Adult Food Insecurity 2017-2018 in California Counties, 2010 Geographies",
-    ("adultfoodinsecurity", 2020, "county" ): "CHIS Adult Food Insecurity 2019-2020 in California Counties, 2010 Geographies",
-    ("adultfoodinsecurity", 2022, "county" ): "CHIS Adult Food Insecurity 2021-2022 in California Counties, 2020 Geographies",
-    ("adultfoodinsecurity", 2016, "censustract" ): "CHIS Adult Food Insecurity 2015-2016 in California Census Tracts, 2010 Geographies",
-    ("adultfoodinsecurity", 2018, "censustract" ): "CHIS Adult Food Insecurity 2017-2018 in California Census Tracts, 2010 Geographies",
-    ("adultfoodinsecurity", 2020, "censustract" ): "CHIS Adult Food Insecurity 2019-2020 in California Census Tracts, 2010 Geographies",
-    ("adultfoodinsecurity", 2022, "censustract" ): "CHIS Adult Food Insecurity 2021-2022 in California Census Tracts, 2020 Geographies",
-    ("adultsugarybev", 2016, "county" ): "CHIS Adult Sugary Beverage Consumption 2015-2016 in California Counties, 2010 Geographies",
-    ("adultsugarybev", 2018, "county" ): "CHIS Adult Sugary Beverage Consumption 2017-2018 in California Counties, 2010 Geographies",
-    ("adultsugarybev", 2020, "county" ): "CHIS Adult Sugary Beverage Consumption 2019-2020 in California Counties, 2010 Geographies",
-    ("adultsugarybev", 2022, "county" ): "CHIS Adult Sugary Beverage Consumption 2021-2022 in California Counties, 2020 Geographies",
-    ("adultsugarybev", 2016, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2015-2016 in California Census Tracts, 2010 Geographies",
-    ("adultsugarybev", 2018, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2017-2018 in California Census Tracts, 2010 Geographies",
-    ("adultsugarybev", 2020, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2019-2020 in California Census Tracts, 2010 Geographies",
-    ("adultsugarybev", 2022, "censustract" ): "CHIS Adult Sugary Beverage Consumption 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("adultobesity", 2016, "county" ): "California Health Interview Survey Adult Obesity 2015-2016 in California Counties, 2010 Geographies",
+    ("adultobesity", 2018, "county" ): "California Health Interview Survey Adult Obesity 2017-2018 in California Counties, 2010 Geographies",
+    ("adultobesity", 2020, "county" ): "California Health Interview Survey Adult Obesity 2019-2020 in California Counties, 2010 Geographies",
+    ("adultobesity", 2022, "county" ): "California Health Interview Survey Adult Obesity 2021-2022 in California Counties, 2020 Geographies",
+    ("adultobesity", 2016, "censustract" ): "California Health Interview Survey Adult Obesity 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2018, "censustract" ): "California Health Interview Survey Adult Obesity 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2020, "censustract" ): "California Health Interview Survey Adult Obesity 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultobesity", 2022, "censustract" ): "California Health Interview Survey Adult Obesity 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("teenoverweightobese", 2016, "county" ): "California Health Interview Survey Teen Overweight/Obese 2015-2016 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2018, "county" ): "California Health Interview Survey Teen Overweight/Obese 2017-2018 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2020, "county" ): "California Health Interview Survey Teen Overweight/Obese 2019-2020 in California Counties, 2010 Geographies",
+    ("teenoverweightobese", 2022, "county" ): "California Health Interview Survey Teen Overweight/Obese 2021-2022 in California Counties, 2020 Geographies",
+    ("teenoverweightobese", 2016, "censustract" ): "California Health Interview Survey Teen Overweight/Obese 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2018, "censustract" ): "California Health Interview Survey Teen Overweight/Obese 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2020, "censustract" ): "California Health Interview Survey Teen Overweight/Obese 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("teenoverweightobese", 2022, "censustract" ): "California Health Interview Survey Teen Overweight/Obese 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("childoverweight", 2016, "county" ): "California Health Interview Survey Child Overweight 2015-2016 in California Counties, 2010 Geographies",
+    ("childoverweight", 2018, "county" ): "California Health Interview Survey Child Overweight 2017-2018 in California Counties, 2010 Geographies",
+    ("childoverweight", 2020, "county" ): "California Health Interview Survey Child Overweight 2019-2020 in California Counties, 2010 Geographies",
+    ("childoverweight", 2022, "county" ): "California Health Interview Survey Child Overweight 2021-2022 in California Counties, 2020 Geographies",
+    ("childoverweight", 2016, "censustract" ): "California Health Interview Survey Child Overweight 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2018, "censustract" ): "California Health Interview Survey Child Overweight 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2020, "censustract" ): "California Health Interview Survey Child Overweight 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("childoverweight", 2022, "censustract" ): "California Health Interview Survey Child Overweight 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("adultfoodinsecurity", 2016, "county" ): "California Health Interview Survey Adult Food Insecurity 2015-2016 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2018, "county" ): "California Health Interview Survey Adult Food Insecurity 2017-2018 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2020, "county" ): "California Health Interview Survey Adult Food Insecurity 2019-2020 in California Counties, 2010 Geographies",
+    ("adultfoodinsecurity", 2022, "county" ): "California Health Interview Survey Adult Food Insecurity 2021-2022 in California Counties, 2020 Geographies",
+    ("adultfoodinsecurity", 2016, "censustract" ): "California Health Interview Survey Adult Food Insecurity 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2018, "censustract" ): "California Health Interview Survey Adult Food Insecurity 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2020, "censustract" ): "California Health Interview Survey Adult Food Insecurity 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultfoodinsecurity", 2022, "censustract" ): "California Health Interview Survey Adult Food Insecurity 2021-2022 in California Census Tracts, 2020 Geographies",
+    ("adultsugarybev", 2016, "county" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2015-2016 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2018, "county" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2017-2018 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2020, "county" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2019-2020 in California Counties, 2010 Geographies",
+    ("adultsugarybev", 2022, "county" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2021-2022 in California Counties, 2020 Geographies",
+    ("adultsugarybev", 2016, "censustract" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2015-2016 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2018, "censustract" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2017-2018 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2020, "censustract" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2019-2020 in California Census Tracts, 2010 Geographies",
+    ("adultsugarybev", 2022, "censustract" ): "California Health Interview Survey Adult Sugary Beverage Consumption 2021-2022 in California Census Tracts, 2020 Geographies",
 
     # NaNDA #
-    ("streetconnectivity", 2020, "censustract"): "2020 NaNDA Street Connectivity (gamma) in California Census Tracts, 2020 Geographies",
-    ("meantrafficperintersection", 2016, "censustract"): "NaNDA Mean Traffic per Intersection, 3yr Imputed Mean Centered on 2016 in California Census Tracts, 2010 Geographies",
+    ("streetconnectivity", 2020, "censustract"): "2020 National Neighborhood Data Archive Street Connectivity (gamma) in California Census Tracts, 2020 Geographies",
+    ("meantrafficperintersection", 2016, "censustract"): "National Neighborhood Data Archive Mean Traffic per Intersection, 3yr Imputed Mean Centered on 2016 in California Census Tracts, 2010 Geographies",
 
     # US Census Bureau ACS #
-    ("uninsured", 2020, "county"): "2018-2022 5yr ACS Uninsured Proportion of Civilian Non-institutionalized Population in California Counties, 2020 Geographies",
-    ("uninsured", 2020, "censustract"): "2018-2022 5yr ACS Uninsured Proportion of Civilian Non-institutionalized Population in California Census Tracts, 2020 Geographies",
+    ("uninsured", 2020, "county"): "2018-2022 5yr American Community Survey Uninsured Proportion of Civilian Non-institutionalized Population in California Counties, 2020 Geographies",
+    ("uninsured", 2020, "censustract"): "2018-2022 5yr American Community Survey Uninsured Proportion of Civilian Non-institutionalized Population in California Census Tracts, 2020 Geographies",
 
     # Mergent Business Data #
     ("rei_3yr", 2020, "censustract"): "Restaurant Environment Index (REI), 3yr Average Centered on 2020 in California Census Tracts, 2020 Geographies",
@@ -340,7 +340,7 @@ factor_descriptions = {
     ("recreationalfacilitiespercapita_3yr", 2020, "censustract"): "Recreational Facilities per capita, 3yr Average Centered on 2020 in California Census Tracts, 2020 Geographies",
 
     # USDA RUCA #
-    ("ruralurbancontinuumcode", 2023, "county"): "USDA 2023 Rural Urban Continuum Codes in California Counties, 2020 Geographies",
+    ("ruralurbancontinuumcode", 2023, "county"): "United States Department of Agriculture 2023 Rural Urban Continuum Codes in California Counties, 2020 Geographies",
 
     # nSES Index #
     ("nses", 2020, "censustract"): "2020 Neighborhood Socioeconomic Status (nSES) Index in California Census Tracts, 2020 Geographies",
@@ -610,7 +610,7 @@ def create_sync_button(is_secondary=False):
 #==============================================================================
 app = dash.Dash(__name__, title="Obesity & Obesogenic Factors Dashboard")
 
-app.layout = html.Div(style={'fontFamily': 'Times New Roman, serif', 'padding': '30px', 'backgroundColor': '#fcfcfc', 'maxWidth': '1800px', 'margin': '0 auto'}, children=[
+app.layout = html.Div(style={'fontFamily': 'Helvetica Neue, Roman, Helvetica, Arial sans-serif', 'padding': '30px', 'backgroundColor': '#fcfcfc', 'maxWidth': '1800px', 'margin': '0 auto'}, children=[
     html.Header(style={'borderBottom': '3px double #6E2C00', 'marginBottom': '25px', 'paddingBottom': '10px'}, children=[
         html.H1("Obesity & Obesogenic Factors Geospatial Demographics", style={'fontSize': '36px', 'color': '#052049', 'margin': '0', 'fontWeight': 'normal'}),
         html.P("DREAM Lab Demographic & Risk Assessment Spatial Interface", style={'fontStyle': 'italic', 'color': '#555'})
