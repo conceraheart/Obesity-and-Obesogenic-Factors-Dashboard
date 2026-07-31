@@ -28,6 +28,7 @@
 # - Adjust map synchronization. Currently, map 2 will update any time map 1 frame is changed. Update such that map 2 updates frames
 # only when the "Synchronize Maps" button is pressed.
 # - Update text addendum to be more professional and include more explicit information on provided data.
+# - Additional logic for RFEI / REI to have custom "No Food Environment" categories in lieu of the default "Data Missing" categories. 
   
 # Activate virtual environment
 # .\\.venv\scripts\activate.ps1
@@ -105,7 +106,9 @@ uninsured_colormap = { "0 to <5%": "#052049",
                       "20% or greater": "#FFF7C0",
                      "Data Missing": "#D3D3D3" }
 # REI / RFEI uses an inverted foodinsecurity colormap. Consider changing this? Will the color inversion confuse users?
-rei_rfei_colormap = {"0": "#FDD835", "Q1": "#FFF59D", "Q2": "#E8F5E9", "Q3": "#A5D6A7", "Q4": "#66BB6A", "Data Missing": "#D3D3D3"}
+rfei_colormap = {"0 to <0.5": "#66BB6A", "0.5 to <1.0": "#A5D6A7", "1.0 to <1.5": "#E8F5E9", "1.5 to <2.0": "#FFF59D", "Unhealthy Retail Food Environment - saturated": "#FDD835", "Data Missing": "#D3D3D3"}
+rei_colormap = {"0 to <0.5": "#66BB6A", "0.5 to <1.0": "#A5D6A7", "1.0 to <1.5": "#E8F5E9", "1.5 to <2.0": "#FFF59D", "Unhealthy Retail Food Environment - saturated": "#FDD835", "Data Missing": "#D3D3D3"}
+
 recreationalfacilities_colormap = {"<0.5 per 1,000": "#FFF7C0",       # Pastel Yellow
     "0.5 to <1.0 per 1,000": "#A6D9D0",      # Light Aqua
     "1.0 to <1.5 per 1,000": "#57ADD2",     # Sky Blue
@@ -120,6 +123,12 @@ ruralurbancontinuumcode_colormap = { "Metropolitan - Counties in metro areas of 
                                 "Nonmetropolitan - Counties with urban population of 5,000 to <20,000": "#A5D6A7",
                                 "Nonmetropolitan - Counties with urban population fewer than 5,000": "#66BB6A",
                                 "Data Missing": "#D3D3D3" }
+percentrural_colormap = { "0% to <25%": "#052049",
+                         "25% to <50%": "#2C6EAD",
+                         "50% to <75%": "#FFF7C0",
+                         "75% to <100%": "#A5D6A7",
+                         "100%": "#66BB6A",
+                         "Data Missing": "#D3D3D3" }
 index_colormap = {"Q1": "#FFF7C0", "Q2": "#A6D9D0", "Q3": "#57ADD2", "Q4": "#2C6EAD", "Q5": "#052049", "Data Missing": "#D3D3D3"}
 
 
@@ -128,11 +137,13 @@ obesogenicfactor_order = ["0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "
 streetconnectivity_order = [ "0 to <0.40 - Low Connectivity", "0.40 to <0.60 - Medium Connectivity", "0.60 to 1.00 - High Connectivity" ]
 meantrafficperintersection_order = [ "<25", "25 to <50", "50 to <75", "75 to <100", "100 or greater" ]
 uninsured_order = [ "0 to <5%", "5 to <10%", "10 to <15%", "15 to <20%", "20% or greater" ]
-rei_rfei_order = ["0", "Q1", "Q2", "Q3", "Q4"]
+rfei_order = [ "0 to <0.5", "0.5 to <1.0", "1.0 to <1.5", "1.5 to <2.0", "Unhealthy Retail Food Environment - saturated" ]
+rei_order = [ "0 to <0.5", "0.5 to <1.0", "1.0 to <1.5", "1.5 to <2.0", "Unhealthy Restaurant Environment - saturated" ]
 recreationalfacilities_order = ["<0.5 per 1,000", "0.5 to <1.0 per 1,000", "1.0 to <1.5 per 1,000", "1.5 to <2.0 per 1,000", "2.0 or greater per 1,000"]
 ruralurbancontinuumcode_order = [ "Metropolitan - Counties in metro areas of 250,000 population or greater", "Metropolitan - Counties in metro areas of fewer than 250,000 population",
                              "Nonmetropolitan - Counties with urban population of 20,000 or more", "Nonmetropolitan - Counties with urban population of 5,000 to <20,000",
                              "Nonmetropolitan - Counties with urban population fewer than 5,000" ]
+percentrural_order = [ "0% to <25%", "25% to <50%", "50% to <75%", "75% to <100%", "100%" ]
 index_order = ["Q1", "Q2", "Q3", "Q4", "Q5"]
 
 
@@ -214,7 +225,7 @@ FACTOR_CONFIG = {
     },
     "rei_3yr": {
         "format_type": "raw",
-        "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Restaurant Environment Index - 3yr average",
+        "colors": rei_colormap, "order": rei_order, "label": "Restaurant Environment Index - 3yr average",
         "allowed_years": [
             {'label': '2020', 'value': 2020}
         ],
@@ -225,7 +236,7 @@ FACTOR_CONFIG = {
     },
     "rfei_3yr": {
         "format_type": "raw",
-        "colors": rei_rfei_colormap, "order": rei_rfei_order, "label": "Retail Food Environment Index - 3yr average",
+        "colors": rfei_colormap, "order": rfei_order, "label": "Retail Food Environment Index - 3yr average",
         "allowed_years": [ 
             {'label': '2020', 'value': 2020}
         ],
@@ -254,6 +265,17 @@ FACTOR_CONFIG = {
         "allowed_geos": [
             {'label': 'County', 'value': 'county'},
             {'label': 'Census Tract', 'value': 'censustract', 'disabled': True}
+        ]
+    },
+    "percentrural": {
+        "format_type": "percent",
+        "colors": percentrural_colormap, "order": percentrural_order, "label": "US Census Bureau Percent Rural Population",
+        "allowed_years": [
+            {'label': '2020', 'value': 2020}
+        ],
+        "allowed_geos": [
+            {'label': 'County', 'value': 'county', 'disabled': True},
+            {'label': 'Census Tract', 'value': 'censustract'}
         ]
     },
     "nses": {
@@ -342,6 +364,9 @@ factor_descriptions = {
     # USDA RUCA #
     ("ruralurbancontinuumcode", 2023, "county"): "United States Department of Agriculture 2023 Rural Urban Continuum Codes in California Counties, 2020 Geographies",
 
+    # US Census Bureau % rural #
+    ("percentrural", 2020, "censustract"): "United States Census Bureau 2020 Decennial Census Percent Rural Population in California Census Tracts, 2020 Geographies",
+
     # nSES Index #
     ("nses", 2020, "censustract"): "2020 Neighborhood Socioeconomic Status (nSES) Index in California Census Tracts, 2020 Geographies",
 
@@ -384,6 +409,7 @@ factor_style_map = {
     "streetconnectivity": "single_year",
     "meantrafficperintersection": "3yr_average",
     "ruralurbancontinuum": "single_year",
+    "percentrural": "single_year",
     "nses": "single_year",
     "svi": "single_year",
     "rei_3yr": "3yr_average",
@@ -403,6 +429,7 @@ GEO_VINTAGE_MAP = {
         "rfei_3yr": 2020,
         "recreationalfacilitiespercapita_3yr": 2020,
         "ruralurbancontinuumcode": 2020,
+        "percentrural": 2020,
         "nses": 2020,
         "svi": 2020
     },
@@ -452,12 +479,12 @@ print("Loading master datasets...", flush=True)
 # Store the raw master datasets mapped to their respective geographic vintage
 master_data_store = {
     "county": {
-        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2010_20260721.xlsx", "county", 5),
-        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2020_20260721.xlsx", "county", 5)
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2010_20260730.xlsx", "county", 5),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_county2020_20260730.xlsx", "county", 5)
     },
     "censustract": {
-        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2010_20260721.xlsx", "censustract", 11),
-        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2020_20260721.xlsx", "censustract", 11)
+        2010: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2010_20260730.xlsx", "censustract", 11),
+        2020: load_master_data("WuNelson_HDFCCC_obesitysupplementdata_censustract2020_20260730.xlsx", "censustract", 11)
     }
 }
 
@@ -739,7 +766,7 @@ Adult sugar-sweetened beverage consumption is defined as proportion of adults wh
         dcc.Markdown("""* California Health Interview Survey obscures estimates when populations are less than 1,000 individuals or when estimates are statistically unstable.
 * 2015-2016, 2017-2018, 2019-2020 data are plotted on 2010 Decennial Census geographies; 2021-2022 is plotted on 2020 Decennial Census geographies."""),
         html.H4("Additional Resources", style={'color': '#444', 'fontWeight': 'normal'}),
-        dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | Demographics data modeled by [CHIS](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
+        dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | Demographics data modeled by [ California Health Interview Survey (CHIS)](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
     ])
 ])
 
