@@ -637,11 +637,44 @@ def create_sync_button(is_secondary=False):
 #==============================================================================
 app = dash.Dash(__name__, title="Obesity & Obesogenic Factors Dashboard")
 
-app.layout = html.Div(style={'fontFamily': 'Helvetica Neue, Roman, Helvetica, Arial sans-serif', 'padding': '30px', 'backgroundColor': '#fcfcfc', 'maxWidth': '1800px', 'margin': '0 auto'}, children=[
-    html.Header(style={'borderBottom': '3px double #6E2C00', 'marginBottom': '25px', 'paddingBottom': '10px'}, children=[
-        html.H1("Obesity & Obesogenic Factors Geospatial Demographics", style={'fontSize': '36px', 'color': '#052049', 'margin': '0', 'fontWeight': 'normal'}),
-        html.P("DREAM Lab Demographic & Risk Assessment Spatial Interface", style={'fontStyle': 'italic', 'color': '#555'})
-    ]),
+
+
+app.layout = html.Div(style={'fontFamily': '"Helvetica Neue Roman", "Helvetica Neue", Helvetica, Arial, sans-serif',
+                             'backgroundColor': '#fcfcfc', 
+                             'margin': '-8px',
+                             'padding': '0'
+                             }, 
+                      children=[
+                                 # Top navigational banner (UCSF compliant) #
+                                 html.Div(
+                                     style={
+                                         'backgroundColor': '#052049',
+                                         'height': '35px',
+                                         'display': 'flex',
+                                         'justifyContent': 'space-between', 
+                                         'alignItems': 'center', 
+                                         'padding': '0 20px',
+                                         'marginBottom': '20px'
+                                         }, 
+                                     children=[
+                                         html.A("University of California San Francisco", href="https://www.ucsf.edu/", style={'color': 'white', 'textDecoration': 'none', 'fontSize': '16px'}),
+                                         html.A("About UCSF", href="https://www.ucsf.edu/about", style={'color': 'white', 'textDecoration': 'none', 'fontSize': '16px'})
+                                         ]
+                                     ),
+                                 html.Div(
+                                     style={
+                                         'maxWidth': '1800px', 
+                                         'margin': '0 auto', 
+                                         'padding': '30px'
+                                         },
+                                     children=[
+                                          html.Header(style={'borderBottom': '3px double #6E2C00', 'marginBottom': '25px', 'paddingBottom': '10px'}, children=[
+                                              html.H1("Obesity & Obesogenic Factors Geospatial Demographics", style={'fontSize': '36px', 'color': '#052049', 'margin': '0', 'fontWeight': 'normal'}),
+                                              html.P("DREAM Lab Demographic & Risk Assessment Spatial Interface", style={'fontStyle': 'italic', 'color': '#555'})
+
+                                         
+                                         ]),
+
     
     # REMOVED flexWrap: 'wrap' to lock the sidebar and maps to a single row
     html.Div(style={'display': 'flex', 'gap': '20px', 'flexDirection': 'row'}, children=[
@@ -769,7 +802,7 @@ Adult sugar-sweetened beverage consumption is defined as proportion of adults wh
         dcc.Markdown("[UCSF-Helen Diller Family Comprehensive Cancer Center (HDFCCC)] (https://cancer.ucsf.edu/) | [Stanford Cancer Institute (SCI)](https://med.stanford.edu/cancer/about.html) | Demographics data modeled by [ California Health Interview Survey (CHIS)](https://healthpolicy.ucla.edu/our-work/california-health-interview-survey-chis)")
     ])
 ])
-
+                                 ])
 #==============================================================================
 # CORE MAP GENERATION ENGINE
 #==============================================================================
@@ -935,12 +968,20 @@ def toggle_dual_mode(toggle_val):
      State('geo-toggle-1', 'value'), State('catchment-toggle-1', 'value'),
      State('factor-dropdown-2', 'value'), State('year-dropdown-2', 'value'), 
      State('geo-toggle-2', 'value'), State('catchment-toggle-2', 'value'),
-     State('prod-toggle', 'value'), State('dual-map-toggle', 'value')]
+     State('prod-toggle', 'value'), State('dual-map-toggle', 'value'),
+     State('spatial-choropleth-map-1', 'figure')]
 )
 
-def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode):
+def update_maps(n_clicks, f1, y1, g1, c1, f2, y2, g2, c2, prod_mode, dual_mode, current_fig1):
     # Initialize Map 1
     fig1 = generate_choropleth(f1, y1, g1, c1, prod_mode)
+    
+    # Maintain persistent pins on Map 1(if they exist) #
+    if current_fig1 and 'data' in current_fig1:
+        existing_pins = [trace for trace in current_fig1['data'] if trace.get('name') == 'Searched Location']
+        for pin in existing_pins:
+            fig1.add_trace(pin)
+
     desc1_text = factor_descriptions.get((f1, y1, g1), "Description not currently available for this variable.")
     desc1_content = [html.B("Figure 1. "), html.Span(desc1_text)]
 
@@ -1005,29 +1046,31 @@ def sync_context_menu_2(selected_factor):
 # Synchronize bounds from Map 1 to Map 2
 @app.callback(
     Output('spatial-choropleth-map-2', 'figure', allow_duplicate=True),
-    [Input('spatial-choropleth-map-1', 'relayoutData'),
-     Input('sync-btn', 'n_clicks')],
-    [State('dual-map-toggle', 'value')],
+    [Input('sync-btn', 'n_clicks')],
+    [State('spatial-choropleth-map-1', 'relayoutData'),
+     State('spatial-choropleth-map-1', 'figure'),
+     State('dual-map-toggle', 'value')],
     prevent_initial_call=True
 )
-def sync_maps(relayout_data, n_clicks, dual_mode):
+def sync_maps(n_clicks, relayout_data, fig1, dual_mode):
     # Only synchronize if dual mode is active and pan/zoom events occurred
     if 'dual' not in dual_mode:
         return no_update
-    # If user has not panned or zoomed Map 1, relayout_data is None.
-    if not relayout_data:
-        return no_update
-#if 'mapbox.zoom' in relayout_data or 'mapbox.center' in relayout_data or n_clicks > 0:
-    
-    if n_clicks > 0:
-        patched_fig = Patch()
+    patched_fig = Patch()
+
+    # Attempt synchronication according to recent user input (relayoutData) #
+    if relayout_data:
         if 'mapbox.zoom' in relayout_data:
             patched_fig['layout']['mapbox']['zoom'] = relayout_data['mapbox.zoom']
         if 'mapbox.center' in relayout_data:
             patched_fig['layout']['mapbox']['center'] = relayout_data['mapbox.center']
-        return patched_fig
-        
-    return no_update
+
+    # Default to static bounds of Map 1 if relayoutData is empty. #
+    elif fig1 and 'layout' in fig1 and 'mapbox' in fig1['layout']:
+        patched_fig['layout']['mapbox']['zoom'] = fig1['layout']['mapbox']['zoom']
+        patched_fig['layout']['mapbox']['center'] = fig1['layout']['mapbox']['center']
+
+    return patched_fig
 
 # Toggle search bar visibility
 @app.callback(
