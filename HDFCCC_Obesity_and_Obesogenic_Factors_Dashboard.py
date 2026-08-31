@@ -1,4 +1,4 @@
-﻿# HDFCCC - Obesity Supplement - Obesogenic Factor Dashboard #
+﻿# Obesity Supplement - Obesogenic Factor Dashboard #
 # Code by Nelson Wu #
 
 # These codes pull in source data provided by California Health Interview Survey, 
@@ -22,14 +22,6 @@
 # - Address search / ZIP code search implemented.
 # - Accessibility feature implemented for context-specific text descriptions of map visualizations.
 
-# To do:
-# - Street connectivity resolution is insufficient using the low / medium / high connectivity breakpoints. Enormous portions
-# of California are also unpopulated for this variable.
-# - Adjust map synchronization. Currently, map 2 will update any time map 1 frame is changed. Update such that map 2 updates frames
-# only when the "Synchronize Maps" button is pressed.
-# - Update text addendum to be more professional and include more explicit information on provided data.
-# - Additional logic for RFEI / REI to have custom "No Food Environment" categories in lieu of the default "Data Missing" categories. 
-  
 # Activate virtual environment
 # .\\.venv\scripts\activate.ps1
 
@@ -448,12 +440,6 @@ def get_geo_vintage(selected_factor, selected_year):
     defaults = GEO_VINTAGE_MAP["chis_vintage"]
     return defaults["2020_plus"] if selected_year >= 2022 else defaults["pre_2020"]
 
-# Logic for displaying appropriate legend based on selected factor and year
-#legend_year = {
-#    "default_year": {
-#        "rei_3yr": 2020,
-#        "rfei"}}
-
 # Create rgba codes from hex
 def hex_to_rgba(hex_val, alpha=1.0):
     hex_clean = hex_val.lstrip('#')
@@ -833,8 +819,6 @@ def generate_choropleth(selected_factor, selected_year, selected_geo, selected_c
     ]
 
     # Fetch Pre-joined Data Source
-    # IMPORTANT: Use .copy() so we don't accidentally modify the cached data globally 
-    # when adding ghost rows or dynamic display columns later in this function.
     datasource = mastershapefile[selected_geo][geo_year_key][required_columns].copy()
 
     # Fetch formatting metadata
